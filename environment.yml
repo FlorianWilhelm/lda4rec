@@ -3,48 +3,28 @@ channels:
   - defaults
   - conda-forge
   - pytorch
-  # - fastai
 dependencies:
-  - python>=3.6
+  - python=3.8
   - pip
   # BASICS
   - numpy
   - scipy
   - pandas
+  - pytorch
   - tqdm
   - click
+  - pyyaml
+  - requests
   - ipython
-  # VISUALIZATION
   - matplotlib
   - seaborn
-  # - altair
-  # - yellowbrick
-  # ML, STATS & DEEP LEARNING
-  # - statsmodels
-  # - scikit-learn
-  # - sktime
-  # - tslearn
-  # - xgboost
-  # - catboost
-  # - lightgbm
-  # - pytorch
-  # - fastai  # activate fastai channel above!
-  # - tensorflow
-  # - keras
-  # - spacy
-  # OTHER TOOLS
-  # - optuna
-  # - dask
   - pip:
      - -e .  # install git checkout of lda4rec in editable mode
-     # add here only pip-packages that are not available in conda/conda-forge! E.g.:
-     # - icecream
-     # - jax
-     # - numpyro
-     # - funsor
-     # - neptune-client
-     # - neptune-contrib
-
+     - icecream
+     - pyro-ppl
+     - neptune-client
+     - neptune-contrib
+     - daft  # only for plotting the graphical models
   # DEVELOPMENT ONLY PACKAGES (could also be kept in a separate environment file)
   - jupyterlab
   - pytest
@@ -55,3 +35,4 @@ dependencies:
   - nbstripout
   - sphinx
   - recommonmark
+  - nomkl # needed to avoid Error #15: Initializing libiomp5.dylib, but found libiomp5.dylib already initialized

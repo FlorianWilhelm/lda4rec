@@ -1,4 +1,4 @@
-# lda4rec
+# LDA4Rec
 
 Matrix Factorization for Collaborative Filtering is actually an Approximation to a Latent Dirichlet Allocation Problem
 
