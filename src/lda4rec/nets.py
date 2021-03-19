@@ -6,7 +6,6 @@ Note: The BilinearNet class is more or less taken from Spotlight (MIT)
 """
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 class ScaledEmbedding(nn.Embedding):
@@ -45,14 +44,7 @@ class ZeroEmbedding(nn.Embedding):
             self.weight.data[self.padding_idx].fill_(0)
 
 
-class BaseModel(nn.Module):
-    def __init__(self, n_users, n_items):
-        super().__init__()
-        self.n_users = n_users
-        self.n_items = n_items
-
-
-class BilinearNet(BaseModel):
+class BilinearNet(nn.Module):
     """
     Bilinear factorization representation.
     Encodes both users and items as an embedding layer; the score
@@ -80,16 +72,14 @@ class BilinearNet(BaseModel):
         n_items,
         *,
         embedding_dim=32,
-        biases=True,
         user_embedding_layer=None,
         item_embedding_layer=None,
-        torch_seed=42,
         sparse=False
     ):
+        super().__init__()
 
-        super().__init__(n_users, n_items)
-        torch.manual_seed(torch_seed)
-
+        self.n_users = n_users
+        self.n_items = n_items
         self.embedding_dim = embedding_dim
 
         if user_embedding_layer is not None:
@@ -106,13 +96,8 @@ class BilinearNet(BaseModel):
                 n_items, embedding_dim, sparse=sparse
             )
 
-        self.biases = biases
-        if biases:
-            self.user_biases = ZeroEmbedding(n_users, 1, sparse=sparse)
-            self.item_biases = ZeroEmbedding(n_items, 1, sparse=sparse)
-        else:
-            self.user_biases = None
-            self.item_biases = None
+        self.user_biases = ZeroEmbedding(n_users, 1, sparse=sparse)
+        self.item_biases = ZeroEmbedding(n_items, 1, sparse=sparse)
 
     def forward(self, user_ids, item_ids):
         """
@@ -143,15 +128,14 @@ class BilinearNet(BaseModel):
         if dot.dim() > 1:  # handles case where embedding_dim=1
             dot = dot.sum(1)
 
-        if self.biases:
-            user_bias = self.user_biases(user_ids).squeeze()
-            item_bias = self.item_biases(item_ids).squeeze()
-            dot = dot + user_bias + item_bias
+        user_bias = self.user_biases(user_ids).squeeze()
+        item_bias = self.item_biases(item_ids).squeeze()
+        dot = dot + user_bias + item_bias
 
         return dot
 
 
-class PosBilinearNet(BaseModel):
+class PosBilinearNet(nn.Module):
     """
     Bilinear factorization representation.
     Encodes both users and items as an embedding layer; the score
@@ -179,16 +163,14 @@ class PosBilinearNet(BaseModel):
         n_items,
         *,
         embedding_dim=32,
-        biases=True,
         user_embedding_layer=None,
         item_embedding_layer=None,
-        torch_seed=42,
         sparse=False
     ):
+        super().__init__()
 
-        super().__init__(n_users, n_items)
-        torch.manual_seed(torch_seed)
-
+        self.n_users = n_users
+        self.n_items = n_items
         self.embedding_dim = embedding_dim
 
         if user_embedding_layer is not None:
@@ -205,13 +187,8 @@ class PosBilinearNet(BaseModel):
                 n_items, embedding_dim, sparse=sparse
             )
 
-        self.biases = biases
-        if biases:
-            self.user_biases = ZeroEmbedding(n_users, 1, sparse=sparse)
-            self.item_biases = ZeroEmbedding(n_items, 1, sparse=sparse)
-        else:
-            self.user_biases = None
-            self.item_biases = None
+        self.user_biases = ZeroEmbedding(n_users, 1, sparse=sparse)
+        self.item_biases = ZeroEmbedding(n_items, 1, sparse=sparse)
 
     def forward(self, user_ids, item_ids):
         """
@@ -237,119 +214,20 @@ class PosBilinearNet(BaseModel):
 
         user_embedding = user_embedding.squeeze()
         item_embedding = item_embedding.squeeze()
+
+        user_bias = self.user_biases(user_ids).squeeze()
+        item_bias = self.item_biases(item_ids).squeeze()
 
         dot = user_embedding * torch.sigmoid(item_embedding)
+
         if dot.dim() > 1:  # handles case where embedding_dim=1
             dot = dot.sum(1)
 
-        if self.biases:
-            user_bias = self.user_biases(user_ids).squeeze()
-            item_bias = self.item_biases(item_ids).squeeze()
-            dot = dot + user_bias + item_bias
-
+        dot = dot + user_bias + item_bias
         return dot
 
 
-class SoftMaxBilinearNet(BaseModel):
-    """
-    Bilinear factorization representation.
-    Encodes both users and items as an embedding layer; the score
-    for a user-item pair is given by the dot product of the item
-    and user latent vectors.
-
-    n_users (int): Number of users in the model.
-    n_items (int): Number of items in the model.
-    embedding_dim: int, optional
-        Dimensionality of the latent representations.
-    biases (bool):
-    user_embedding_layer: an embedding layer, optional
-        If supplied, will be used as the user embedding layer
-        of the network.
-    item_embedding_layer: an embedding layer, optional
-        If supplied, will be used as the item embedding layer
-        of the network.
-    sparse: boolean, optional
-        Use sparse gradients.
-    """
-
-    def __init__(
-        self,
-        n_users,
-        n_items,
-        *,
-        embedding_dim=32,
-        biases=True,
-        user_embedding_layer=None,
-        item_embedding_layer=None,
-        torch_seed=42,
-        sparse=False
-    ):
-
-        super().__init__(n_users, n_items)
-        torch.manual_seed(torch_seed)
-
-        self.embedding_dim = embedding_dim
-
-        if user_embedding_layer is not None:
-            self.user_embeddings = user_embedding_layer
-        else:
-            self.user_embeddings = ScaledEmbedding(
-                n_users, embedding_dim, sparse=sparse
-            )
-
-        if item_embedding_layer is not None:
-            self.item_embeddings = item_embedding_layer
-        else:
-            self.item_embeddings = ScaledEmbedding(
-                n_items, embedding_dim, sparse=sparse
-            )
-
-        self.biases = biases
-        if biases:
-            self.user_biases = ZeroEmbedding(n_users, 1, sparse=sparse)
-            self.item_biases = ZeroEmbedding(n_items, 1, sparse=sparse)
-        else:
-            self.user_biases = None
-            self.item_biases = None
-
-    def forward(self, user_ids, item_ids):
-        """
-        Compute the forward pass of the representation.
-
-        Parameters
-        ----------
-
-        user_ids: tensor
-            Tensor of user indices.
-        item_ids: tensor
-            Tensor of item indices.
-
-        Returns
-        -------
-
-        predictions: tensor
-            Tensor of predictions.
-        """
-
-        user_embedding = self.user_embeddings(user_ids)
-        item_embedding = self.item_embeddings(item_ids)
-
-        user_embedding = user_embedding.squeeze()
-        item_embedding = item_embedding.squeeze()
-
-        dot = torch.sigmoid(user_embedding) * F.softmax(item_embedding, dim=-1)
-        if dot.dim() > 1:  # handles case where embedding_dim=1
-            dot = dot.sum(1)
-
-        if self.biases:
-            user_bias = self.user_biases(user_ids).squeeze()
-            item_bias = self.item_biases(item_ids).squeeze()
-            dot = dot + user_bias + item_bias
-
-        return dot
-
-
-class DeepNet(BaseModel):
+class DeepNet(nn.Module):
     def __init__(
         self,
         n_users,
@@ -360,13 +238,12 @@ class DeepNet(BaseModel):
         user_embedding_layer=None,
         item_embedding_layer=None,
         n_hidden_layers=2,
-        torch_seed=42,
         sparse=False
     ):
+        super().__init__()
 
-        super().__init__(n_users, n_items)
-        torch.manual_seed(torch_seed)
-
+        self.n_users = n_users
+        self.n_items = n_items
         self.embedding_dim = embedding_dim
         self.n_hidden_layers = n_hidden_layers
         self.activation = activation

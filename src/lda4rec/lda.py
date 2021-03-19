@@ -3,7 +3,6 @@ Hierarchical Bayesian Model for Collaborative Filtering
 
 Shape notation: (batch_shape | event_shape), e.g. (10, 2 | 3)
 """
-import functools
 import logging
 from dataclasses import dataclass
 from typing import Callable, List, Optional

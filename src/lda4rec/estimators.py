@@ -14,26 +14,15 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-from .lda_models import Param
-from .losses import bpr_loss, logistic_loss
-from .mf_models import BaseModel
+from .lda import Param
+from .losses import adaptive_hinge_loss, bpr_loss, hinge_loss, logistic_loss
+from .nets import BilinearNet, PosBilinearNet
 from .utils import cpu, gpu, minibatch, process_ids, sample_items, set_seed, shuffle
 
 _logger = logging.getLogger(__name__)
 
 
-class BaseEstimator(metaclass=ABCMeta):
-    def __init__(self, *, model, use_cuda=False, random_state=None, callback=None):
-        if callback is None:
-            callback = lambda x: None
-        self._model = model
-        self._model = gpu(model, use_cuda)
-        self._use_cuda = use_cuda
-        self._random_state = random_state or np.random.RandomState()
-        self._callback = callback
-
-        set_seed(self._random_state.randint(-(10 ** 8), 10 ** 8), cuda=self._use_cuda)
-
+class EstimatorMixin(metaclass=ABCMeta):
     def __repr__(self):
         return "<{}: {}>".format(
             self.__class__.__name__,
@@ -46,6 +35,7 @@ class BaseEstimator(metaclass=ABCMeta):
 
     def _predict(self, user_ids, item_ids):
         """Overwrite this if you need to do more then just applying the model"""
+        self._model.train(False)
         return self._model(user_ids, item_ids)
 
     def predict(self, user_ids, item_ids=None, cartesian=False):
@@ -76,15 +66,13 @@ class BaseEstimator(metaclass=ABCMeta):
         predictions: np.array
             Predicted scores for all items in item_ids.
         """
-        self._model.train(False)
-
         if np.isscalar(user_ids):
             n_users = 1
         else:
             n_users = len(user_ids)
         try:
             user_ids, item_ids = process_ids(
-                user_ids, item_ids, self._model.n_items, self._use_cuda, cartesian
+                user_ids, item_ids, self._n_items, self._use_cuda, cartesian
             )
         except RuntimeError as e:
             raise RuntimeError("Maybe you want to set `cartesian=True`?") from e
@@ -97,17 +85,19 @@ class BaseEstimator(metaclass=ABCMeta):
             return out.flatten()
 
 
-class PopEst(BaseEstimator):
+class PopEst(EstimatorMixin):
     """Estimator using the popularity"""
 
-    def __init__(self, *, model=None, **kwargs):
-        model = BaseModel(0, 0) if model is None else model
-        super().__init__(model=model, **kwargs)
+    def __init__(self):
         self.pops = None
+        self._n_users = None
+        self._n_items = None
+        self._use_cuda = False
 
     def fit(self, interactions):
-        self._model.n_users = interactions.n_users
-        self._model.n_items = interactions.n_items
+        self._n_users = interactions.n_users
+        self._n_items = interactions.n_items
+
         df = interactions.to_pandas()
         pops = (
             df.groupby("item_id", as_index=False)["rating"]
@@ -125,13 +115,12 @@ class PopEst(BaseEstimator):
         return self.pops[item_ids]
 
 
-class LDA4RecEst(BaseEstimator):
+class LDA4RecEst(EstimatorMixin):
     """Estimator using LDA"""
 
     def __init__(self, *, model=None, params=None, n_items, **kwargs):
         # for compatibility with BaseEstimator
-        model = BaseModel(0, 0) if model is None else model
-        super().__init__(model=model, **kwargs)
+        super().__init__()
         params = pyro.get_param_store() if params is None else params
         self.params = params
         self.pops = params[Param.item_pops_loc].detach()
@@ -154,28 +143,56 @@ class LDA4RecEst(BaseEstimator):
         return dot + self.pops[item_ids]
 
 
-# Move this into base
-class FMEst(BaseEstimator):
+class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
     """Factorization Machine estimator for implicit feedback using BPR"""
 
     def __init__(
         self,
         *,
-        model,
+        model_class,
+        loss,
+        embedding_dim,
         n_iter=10,
         batch_size=128,
         l2=0.0,
         learning_rate=1e-2,
         optimizer=None,
-        **kwargs
+        use_cuda=False,
+        random_state=None,
+        sparse=False,
     ):
-        super().__init__(model=model, **kwargs)
+        self._model_class = model_class
+        self._embedding_dim = embedding_dim
+        self._use_cuda = use_cuda
+        self._random_state = random_state or np.random.RandomState()
         self._n_iter = n_iter
         self._learning_rate = learning_rate
         self._batch_size = batch_size
         self._l2 = l2
+        self._optimizer = optimizer
+        self._sparse = sparse
+        set_seed(self._random_state.randint(-(10 ** 8), 10 ** 8), cuda=self._use_cuda)
 
-        if optimizer is None:
+        self._loss = {
+            "bpr": bpr_loss,
+            "logistic": logistic_loss,
+            "hinge": hinge_loss,
+            "adpative-hinge": adaptive_hinge_loss,
+        }[loss]
+
+    def _initialize(self, interactions):
+        self._n_users = interactions.n_users
+        self._n_items = interactions.n_items
+
+        model = self._model_class(
+            self._n_users,
+            self._n_items,
+            embedding_dim=self._embedding_dim,
+            sparse=self._sparse,
+        )
+        self._model = gpu(model, self._use_cuda)
+
+        if self._optimizer is None:
             self._optimizer = optim.Adam(
                 self._model.parameters(), weight_decay=self._l2, lr=self._learning_rate
             )
@@ -196,7 +213,9 @@ class FMEst(BaseEstimator):
         interactions: :class:`spotlight.interactions.Interactions`
             The input dataset.
         """
+        self._initialize(interactions)
         self._model.train(True)
+
         epoch_loss = None
 
         user_ids = interactions.user_ids.astype(np.int64)
@@ -220,7 +239,7 @@ class FMEst(BaseEstimator):
 
                 self._optimizer.zero_grad()
 
-                loss = bpr_loss(positive_prediction, negative_prediction)
+                loss = self._loss(positive_prediction, negative_prediction)
                 epoch_loss += loss.item()
 
                 loss.backward()
@@ -231,7 +250,6 @@ class FMEst(BaseEstimator):
 
             epoch_loss /= minibatch_num + 1
 
-            self._callback(epoch_loss)
             _logger.info("Epoch {}: loss {}".format(epoch_num, epoch_loss))
 
             if np.isnan(epoch_loss) or epoch_loss == 0.0:
@@ -249,3 +267,13 @@ class FMEst(BaseEstimator):
         negative_prediction = self._model(user_ids, negative_var)
 
         return negative_prediction
+
+
+class BilinearEst(BaseEstimator):
+    def __init__(self, *, loss="bpr", **kwargs):
+        super().__init__(model_class=BilinearNet, loss=loss, **kwargs)
+
+
+class PosBilinearEst(BaseEstimator):
+    def __init__(self, *, loss="bpr", **kwargs):
+        super().__init__(model_class=PosBilinearNet, loss=loss, **kwargs)
