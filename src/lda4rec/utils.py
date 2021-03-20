@@ -7,6 +7,7 @@ Note: Many functions copied over from Spotlight (MIT)
 import logging
 
 import numpy as np
+import pyro
 import torch
 
 _logger = logging.getLogger(__name__)
@@ -71,6 +72,7 @@ def assert_no_grad(variable):
 
 def set_seed(seed, cuda=False):
     torch.manual_seed(seed)
+    pyro.set_rng_seed(seed)
 
     if cuda:
         torch.cuda.manual_seed(seed)

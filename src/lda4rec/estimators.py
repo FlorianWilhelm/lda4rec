@@ -6,6 +6,7 @@ Note: The Implicit Est class is more or less FMModel from Spotlight
 """
 import logging
 from abc import ABCMeta, abstractmethod
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -13,8 +14,10 @@ import pyro
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+from pyro.infer import SVI, JitTraceEnum_ELBO, TraceEnum_ELBO
+from pyro.optim import ClippedAdam
 
-from .lda import Param
+from . import lda
 from .losses import adaptive_hinge_loss, bpr_loss, hinge_loss, logistic_loss
 from .nets import BilinearNet, PosBilinearNet
 from .utils import cpu, gpu, minibatch, process_ids, sample_items, set_seed, shuffle
@@ -118,19 +121,75 @@ class PopEst(EstimatorMixin):
 class LDA4RecEst(EstimatorMixin):
     """Estimator using LDA"""
 
-    def __init__(self, *, model=None, params=None, n_items, **kwargs):
-        # for compatibility with BaseEstimator
-        super().__init__()
-        params = pyro.get_param_store() if params is None else params
-        self.params = params
-        self.pops = params[Param.item_pops_loc].detach()
-        self.topic_items = params[Param.topic_items_loc].detach()
-        self.user_topics = F.softmax(params[Param.user_topics_logits], dim=-1).detach()
-        # ToDo: Do this in fit!!! Hack
-        self._model.n_items = n_items
+    def __init__(
+        self,
+        *,
+        n_topics: int,
+        n_iter: int,
+        alpha: Optional[float] = None,
+        batch_size: Optional[int] = 32,
+        learning_rate: float = 0.01,
+        use_jit: bool = False,
+        use_cuda: bool = False,
+        random_state=None,
+    ):
+        self.n_topics = n_topics
+        self._n_iter = n_iter
+        self._learning_rate = learning_rate
+        self._batch_size = batch_size
+        self._use_jit = use_jit
+        self._alpha = alpha
+        self._use_cuda = use_cuda
+        self._random_state = random_state or np.random.RandomState()
+        set_seed(self._random_state.randint(0, 2 ** 32 - 1), cuda=self._use_cuda)
 
-    def fit(self, interactions):
-        pass
+        # Initialized after fit
+        self.pops = None
+        self.user_topics = None
+        self.topic_items = None
+        self._n_users = None
+        self._n_items = None
+
+    def _initialize(self):
+        params = pyro.get_param_store()
+        self.pops = params[lda.Param.item_pops_loc].detach()
+        self.topic_items = params[lda.Param.topic_items_loc].detach()
+        self.user_topics = F.softmax(
+            params[lda.Param.user_topics_logits], dim=-1
+        ).detach()
+
+    def fit(self, interactions, clear_param_store: bool = True, log_steps=100):
+        self._n_users = interactions.n_users
+        self._n_items = interactions.n_items
+        interactions = torch.tensor(interactions.to_ratings_per_user(), dtype=torch.int)
+
+        if clear_param_store:
+            pyro.clear_param_store()
+        pyro.enable_validation(__debug__)
+
+        model_params = dict(
+            interactions=interactions,
+            n_topics=self.n_topics,
+            n_users=self._n_users,
+            n_items=self._n_items,
+            alpha=self._alpha,
+            batch_size=self._batch_size,
+        )
+
+        Elbo = JitTraceEnum_ELBO if self._use_jit else TraceEnum_ELBO
+        elbo = Elbo(max_plate_nesting=2)
+        optim = ClippedAdam({"lr": self._learning_rate})
+        svi = SVI(lda.model, lda.guide, optim, elbo)
+
+        for epoch_num in range(self._n_iter):
+            epoch_loss = svi.step(**model_params)
+            if epoch_num % log_steps == 0:
+                _logger.info("Epoch {: >5d}: loss {}".format(epoch_num, epoch_loss))
+
+        epoch_loss = elbo.loss(lda.model, lda.guide, **model_params)
+        self._initialize()
+
+        return epoch_loss
 
     def _predict(self, user_ids, item_ids):
         user_embedding = self.user_topics[user_ids]
@@ -171,7 +230,7 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
         self._l2 = l2
         self._optimizer = optimizer
         self._sparse = sparse
-        set_seed(self._random_state.randint(-(10 ** 8), 10 ** 8), cuda=self._use_cuda)
+        set_seed(self._random_state.randint(0, 2 ** 32 - 1), cuda=self._use_cuda)
 
         self._loss = {
             "bpr": bpr_loss,
@@ -250,7 +309,7 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
 
             epoch_loss /= minibatch_num + 1
 
-            _logger.info("Epoch {}: loss {}".format(epoch_num, epoch_loss))
+            _logger.info("Epoch {: >5d}: loss {}".format(epoch_num, epoch_loss))
 
             if np.isnan(epoch_loss) or epoch_loss == 0.0:
                 raise ValueError("Degenerate epoch loss: {}".format(epoch_loss))
@@ -261,7 +320,7 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
     def _get_negative_prediction(self, user_ids):
         """Uniformly samples negative items from the whole item set"""
         negative_items = sample_items(
-            self._model.n_items, len(user_ids), random_state=self._random_state
+            self._model._n_items, len(user_ids), random_state=self._random_state
         )
         negative_var = gpu(torch.from_numpy(negative_items), self._use_cuda)
         negative_prediction = self._model(user_ids, negative_var)

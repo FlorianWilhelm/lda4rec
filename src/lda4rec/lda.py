@@ -15,7 +15,6 @@ import torch.nn.functional as F
 from pyro import poutine
 from pyro.infer import SVI, JitTraceEnum_ELBO, TraceEnum_ELBO
 from pyro.optim import ClippedAdam
-from torch import nn
 
 # missing value for int
 NA = -999
@@ -70,16 +69,16 @@ def model(
     n_topics: int,
     n_users: int,
     n_items: int,
-    max_interactions: int,
     alpha: Optional[float] = None,
     batch_size: Optional[int] = None,
 ) -> ModelData:
     """Bayesian type model
 
     Args:
-        interactions: 2-d array of shape (max_interactions, n_users)
+        interactions: 2-d array of shape (n_interactions, n_users)
     """
     alpha = 1.0 / n_topics if alpha is None else alpha
+    n_interactions = interactions.shape[0]
 
     # omega
     item_pops = pyro.sample(
@@ -103,7 +102,7 @@ def model(
     with pyro.plate(Plate.users, n_users) as ind:
         if interactions is not None:
             with pyro.util.ignore_jit_warnings():
-                assert interactions.shape == (max_interactions, n_users)
+                assert interactions.shape == (n_interactions, n_users)
                 assert interactions.max() < n_items
             interactions = interactions[:, ind]
 
@@ -112,7 +111,7 @@ def model(
             dist.Dirichlet(alpha * torch.ones(n_topics)),  # prefer sparse
         )  # (n_users | n_topics)
 
-        with pyro.plate(Plate.interactions, max_interactions):
+        with pyro.plate(Plate.interactions, n_interactions):
             item_topics = pyro.sample(
                 Site.item_topics,
                 dist.Categorical(user_topics),
@@ -139,28 +138,12 @@ def model(
     )
 
 
-def make_predictor(n_items: int, n_topics: int, layers: List[int]) -> nn.Module:
-    layer_sizes = [n_items] + layers + [n_topics]
-
-    logging.info(f"Creating MLP with sizes {layer_sizes}")
-    layers = []
-    for in_size, out_size in zip(layer_sizes, layer_sizes[1:]):
-        layer = nn.Linear(in_size, out_size)
-        layer.weight.data.normal_(0, 0.001)
-        layer.bias.data.normal_(0, 0.001)
-        layers.append(layer)
-        layers.append(nn.Sigmoid())
-    layers.append(nn.Softmax(dim=-1))
-    return nn.Sequential(*layers)
-
-
 def guide(
     interactions: torch.Tensor,
     *,
     n_topics: int,
     n_users: int,
     n_items: int,
-    max_interactions: int,
     alpha: Optional[float] = None,
     batch_size: Optional[int] = None,
 ):
@@ -226,7 +209,7 @@ def train(
         n_topics=n_topics,
         n_users=n_users,
         n_items=n_items,
-        max_interactions=max_interactions,
+        # max_interactions=max_interactions,
         alpha=alpha,
         batch_size=batch_size,
     )

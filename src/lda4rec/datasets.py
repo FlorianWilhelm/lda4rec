@@ -30,6 +30,8 @@ MOVIELENS_20M = Resource(
     read_csv_args={"names": ["user_id", "item_id", "rating", "timestamp"], "header": 0},
     url="http://files.grouplens.org/datasets/movielens/ml-20m.zip",
 )
+# ToDo: Add Movielens 1m
+# hier alles implementieren was es bei lightfm gibt
 MOVIELENS_100K_OLD = Resource(
     path="ml100k-old/raw.zip",
     interactions="u.data",
@@ -47,7 +49,7 @@ MOVIELENS_100K = Resource(
     url="http://files.grouplens.org/datasets/movielens/ml-latest-small.zip",
 )
 
-DATA_DIR = os.path.join(os.path.expanduser("~"), ".cf_model")
+DATA_DIR = os.path.join(os.path.expanduser("~"), ".lda4rec")
 
 
 def compact(

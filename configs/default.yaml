@@ -1,0 +1,35 @@
+main:
+    # name: default_name is set to name of config file per default
+    data_path: '../data'
+    result_path: '../results'
+    log_path: '../logs'
+    log_level: INFO # log_level for log files
+
+neptune:
+    activate: true
+    init:
+        project_qualified_name: florian.wilhelm/lda4rec  # `shared/onboarding` if no account
+        api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
+    create_experiment:
+        name: lda4rec
+
+dataset:
+    name: movielens
+    variant: 1m
+
+estimators:
+    pop:
+        model: BaseModel
+        model_params: {}
+        estimator: PopEst
+        estimator_params: {}
+
+    lra_bpr:
+        model: BilinearNet
+        model_params:
+            embedding_dim: 8
+            sparse: False
+        estimator: ImplicitEst
+        estimator_params:
+            n_iter: 20
+            learning_rate: 0.01
