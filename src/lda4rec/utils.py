@@ -5,10 +5,21 @@ Various utility functions
 Note: Many functions copied over from Spotlight (MIT)
 """
 import logging
+import os.path
+from collections import UserDict
+from collections.abc import MutableMapping
+from datetime import datetime
+from logging import Handler, LogRecord
+from pathlib import Path
+from typing import Any, Dict
 
+import neptune
 import numpy as np
+import pandas as pd
 import pyro
 import torch
+import yaml
+from neptune import OfflineBackend
 
 _logger = logging.getLogger(__name__)
 
@@ -43,18 +54,15 @@ def minibatch(*tensors, **kwargs):
             yield tuple(x[i : i + batch_size] for x in tensors)
 
 
-# ToDo: Check if this needs to be in numpy?
+# ToDo: Check if this needs to be in numpy or better in pytorch?
 def shuffle(*arrays, **kwargs):
-    random_state = kwargs.get("random_state")
+    rng = np.random.default_rng(kwargs.get("rng"))
 
     if len(set(len(x) for x in arrays)) != 1:
         raise ValueError("All inputs to shuffle must have " "the same length.")
 
-    if random_state is None:
-        random_state = np.random.RandomState()
-
     shuffle_indices = np.arange(len(arrays[0]))
-    random_state.shuffle(shuffle_indices)
+    rng.shuffle(shuffle_indices)
 
     if len(arrays) == 1:
         return arrays[0][shuffle_indices]
@@ -78,35 +86,11 @@ def set_seed(seed, cuda=False):
         torch.cuda.manual_seed(seed)
 
 
-# ToDo: Check if this needs to be in numpy?
-def sample_items(num_items, shape, random_state=None):
-    """
-    Randomly sample a number of items.
-
-    Parameters
-    ----------
-
-    num_items: int
-        Total number of items from which we should sample:
-        the maximum value of a sampled item id will be smaller
-        than this.
-    shape: int or tuple of ints
-        Shape of the sampled array.
-    random_state: np.random.RandomState instance, optional
-        Random state to use for sampling.
-
-    Returns
-    -------
-
-    items: np.array of shape [shape]
-        Sampled item ids.
-    """
-
-    if random_state is None:
-        random_state = np.random.RandomState()
-
-    items = random_state.randint(0, num_items, shape, dtype=np.int64)
-
+# ToDo: Check if this needs to be in numpy or better pytorch?
+def sample_items(num_items, shape, rng=None):
+    """Randomly sample a number of items"""
+    rng = np.random.default_rng(rng)
+    items = rng.integers(0, num_items, shape, dtype=np.int64)
     return items
 
 
@@ -132,3 +116,83 @@ def process_ids(user_ids, item_ids, n_items, use_cuda, cartesian):
     item_var = gpu(item_ids, use_cuda)
 
     return user_var.squeeze(), item_var.squeeze()
+
+
+def relpath_to_abspath(path: Path, anchor_path: Path):
+    if path.is_absolute():
+        return path
+    return (anchor_path / path).resolve()
+
+
+class Config(UserDict):
+    def __init__(self, path: Path, **kwargs):
+        super().__init__()
+
+        with open(path, "r") as fh:
+            self.yaml_content = fh.read()
+
+        cfg = yaml.safe_load(self.yaml_content)
+        timestamp = datetime.now()
+        # store name of config file for id later
+        cfg["main"].setdefault("name", os.path.splitext(path.name)[0])
+        cfg["main"]["log_level"] = getattr(logging, cfg["main"]["log_level"])
+        cfg["main"]["timestamp"] = timestamp
+        cfg["main"]["timestamp_str"] = timestamp.strftime("%Y-%m-%d_%H:%M:%S")
+        cfg["main"].update(kwargs)
+        self._resolve_paths(cfg, path.parent)
+
+        sec_cfg = cfg["neptune"]["init"]
+        if sec_cfg["api_token"].upper() != "ANONYMOUS":
+            # read token file and replace it in config
+            with open(Path(sec_cfg["api_token"]).expanduser()) as fh:
+                sec_cfg["api_token"] = fh.readline().strip()
+        if not cfg["neptune"]["activate"]:
+            sec_cfg["backend"] = OfflineBackend()
+
+        self.data.update(cfg)  # set cfg as own dictionary
+
+    def _resolve_paths(self, cfg: Dict[str, Any], anchor_path: Path):
+        """Resolve all relative paths using `anchor_path` inplace"""
+        for k, v in cfg.items():
+            if isinstance(v, dict):
+                self._resolve_paths(v, anchor_path)
+            elif k.endswith("_path"):
+                cfg[k] = relpath_to_abspath(Path(v).expanduser(), anchor_path)
+
+
+class DuplicateKeyError(ValueError):
+    pass
+
+
+def flatten_dict(d, flat_dict=None):
+    """Flattens the dict by keeping only the most nested keys & raises if ambiguous"""
+    if flat_dict is None:
+        flat_dict = {}
+
+    for k, v in d.items():
+        if isinstance(v, MutableMapping):
+            flatten_dict(v, flat_dict)
+        elif k in flat_dict:
+            raise DuplicateKeyError(f"Duplicate key: {k}")
+        else:
+            flat_dict[k] = v
+    return flat_dict
+
+
+def log_summary(df: pd.DataFrame):
+    for _, row in df.iterrows():
+        metric = row["metric"]
+        neptune.log_metric(f"{metric}_train", row["train"])
+        neptune.log_metric(f"{metric}_valid", row["valid"])
+        neptune.log_metric(f"{metric}_test", row["test"])
+
+
+class NeptuneLogHandler(Handler):
+    def __init__(self, log_name: str, *args, **kwargs):
+        self._log_name = log_name
+        super().__init__(*args, **kwargs)
+
+    def emit(self, record: LogRecord) -> None:
+        msg = self.format(record)
+        for line in msg.splitlines():
+            neptune.log_text(self._log_name, line)

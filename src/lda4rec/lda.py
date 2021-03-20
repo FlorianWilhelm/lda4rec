@@ -1,9 +1,8 @@
 """"
-Hierarchical Bayesian Model for Collaborative Filtering
+Latent Dirichlet Allocation Model for Collaborative Filtering
 
 Shape notation: (batch_shape | event_shape), e.g. (10, 2 | 3)
 """
-import logging
 from dataclasses import dataclass
 from typing import Callable, List, Optional
 
@@ -13,8 +12,6 @@ import pyro.optim
 import torch
 import torch.nn.functional as F
 from pyro import poutine
-from pyro.infer import SVI, JitTraceEnum_ELBO, TraceEnum_ELBO
-from pyro.optim import ClippedAdam
 
 # missing value for int
 NA = -999
@@ -185,54 +182,3 @@ def guide(
             Site.user_topics,
             dist.Delta(F.softmax(user_topics_logits[ind], dim=-1), event_dim=1),
         )
-
-
-def train(
-    interactions: torch.Tensor,
-    n_topics: int,
-    n_users: int,
-    n_items: int,
-    max_interactions: int,
-    n_steps: int,
-    alpha: Optional[float] = None,
-    batch_size: Optional[int] = 32,
-    learning_rate: float = 0.01,
-    use_jit: bool = None,
-):
-    logging.info("Generating data")
-    pyro.set_rng_seed(0)
-    pyro.clear_param_store()
-    pyro.enable_validation(__debug__)
-
-    model_params = dict(
-        interactions=None,
-        n_topics=n_topics,
-        n_users=n_users,
-        n_items=n_items,
-        # max_interactions=max_interactions,
-        alpha=alpha,
-        batch_size=batch_size,
-    )
-    if interactions is None:
-        # We can generate synthetic data directly by calling the model.
-        model_data = model(**model_params)
-        model_params["interactions"] = model_data.interactions
-    else:
-        model_params["interactions"] = interactions
-
-    # We'll train using SVI.
-    logging.info("-" * 40)
-    logging.info("Training on {} users".format(n_users))
-    Elbo = JitTraceEnum_ELBO if use_jit else TraceEnum_ELBO
-    elbo = Elbo(max_plate_nesting=2)
-    optim = ClippedAdam({"lr": learning_rate})
-    svi = SVI(model, guide, optim, elbo)
-
-    logging.info("Step\tLoss")
-    for step in range(n_steps):
-        loss = svi.step(**model_params)
-        if step % 100 == 0:
-            logging.info("{: >5d}\t{}".format(step, loss))
-    loss = elbo.loss(model, guide, **model_params)
-    logging.info("final loss = {}".format(loss))
-    return svi, guide

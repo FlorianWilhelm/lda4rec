@@ -70,6 +70,18 @@ def compact(
         return new_order
 
 
+class UnknownDataset(ValueError):
+    pass
+
+
+def get_dataset(name: str, *args, **kwargs) -> Interactions:
+    loader = DataLoader(*args, **kwargs)
+    if name.lower() == "movielens-100k":
+        return loader.load_movielens("100k")
+    else:
+        raise UnknownDataset(f"Unknown dataset: {name}")
+
+
 class DataLoader(object):
     def __init__(self, data_dir=DATA_DIR, show_progress=True):
         self.data_dir = data_dir
@@ -131,15 +143,7 @@ def download(url, dest_path, show_progress=True):
 
 
 def unzip_flat(src_path, dest_dir):
-    """Unzip all files in archive discarding the directory structure
-
-    Args:
-        src_path:
-        dest_dir:
-
-    Returns:
-
-    """
+    """Unzip all files in archive discarding the directory structure"""
     with ZipFile(src_path) as zip_file:
         for obj in zip_file.filelist:
             if obj.is_dir():
@@ -307,8 +311,8 @@ class Interactions(object):
         mask = ~np.in1d(self.item_ids, item_ids)
         self.select_by_mask_(mask)
 
-    def max_interactions(self, n: int, rng_or_seed=None):
-        rng = np.random.default_rng(rng_or_seed)
+    def max_user_interactions_(self, n: int, rng=None):
+        rng = np.random.default_rng(rng)
         exceed = pd.Series(self.user_ids).value_counts()
         user_ids = exceed.loc[exceed - n > 0].index.to_numpy()
 
@@ -323,18 +327,10 @@ class Interactions(object):
         self.user_ids = mat.row
         self.item_ids = mat.col
         self.ratings = mat.data
-        return self
 
     def implicit_(self, pivot: float):
         """Makes the current dataset implicit by setting values < pivot to 0
-        and values >= pivot to 1
-
-        Args:
-            le_value:
-
-        Returns:
-
-        """
+        and values >= pivot to 1"""
         assert np.max(self.ratings) >= pivot
         mask = self.ratings >= pivot
         self.ratings[mask] = 1
@@ -452,30 +448,12 @@ def _index_or_none(array, shuffle_index):
         return array[shuffle_index]
 
 
-def shuffle_interactions(interactions, random_state=None):
-    """
-    Shuffle interactions.
-
-    Parameters
-    ----------
-
-    interactions: :class:`spotlight.interactions.Interactions`
-        The interactions to shuffle.
-    random_state: np.random.RandomState, optional
-        The random state used for the shuffle.
-
-    Returns
-    -------
-
-    interactions: :class:`spotlight.interactions.Interactions`
-        The shuffled interactions.
-    """
-
-    if random_state is None:
-        random_state = np.random.RandomState()
+def shuffle_interactions(interactions: Interactions, rng=None):
+    """Shuffle interactions randomly"""
+    rng = np.random.default_rng(rng)
 
     shuffle_indices = np.arange(len(interactions.user_ids))
-    random_state.shuffle(shuffle_indices)
+    rng.shuffle(shuffle_indices)
 
     return Interactions(
         interactions.user_ids[shuffle_indices],
@@ -488,29 +466,12 @@ def shuffle_interactions(interactions, random_state=None):
     )
 
 
-def random_train_test_split(interactions, test_percentage=0.2, random_state=None):
-    """
-    Randomly split interactions between training and testing.
+def random_train_test_split(
+    interactions: Interactions, test_percentage: float = 0.2, rng=None
+):
+    """Randomly split interactions between training and testing"""
 
-    Parameters
-    ----------
-
-    interactions: :class:`spotlight.interactions.Interactions`
-        The interactions to shuffle.
-    test_percentage: float, optional
-        The fraction of interactions to place in the test set.
-    random_state: np.random.RandomState, optional
-        The random state used for the shuffle.
-
-    Returns
-    -------
-
-    (train, test): (:class:`spotlight.interactions.Interactions`,
-                    :class:`spotlight.interactions.Interactions`)
-         A tuple of (train data, test data)
-    """
-
-    interactions = shuffle_interactions(interactions, random_state=random_state)
+    interactions = shuffle_interactions(interactions, rng=rng)
 
     cutoff = int((1.0 - test_percentage) * len(interactions))
 

@@ -138,26 +138,14 @@ def precision_recall_score(model, test, train=None, k=10):
     return precision, recall
 
 
-def auc_score(model, test, train=None, seed=None):
-    """
-    See https://arxiv.org/pdf/1508.06091.pdf
-
-    Args:
-        model:
-        test:
-        train:
-        seed:
-
-    Returns:
-
-    """
+def auc_score(model, test, train=None, rng=None):
+    """Calculate AUC Score"""
     test = test.to_csr()
 
     if train is not None:
         train = train.to_csr()
 
-    if seed is not None:
-        np.random.seed(seed)
+    rng = np.random.default_rng(rng)
 
     auc_score = []
 
@@ -178,7 +166,7 @@ def auc_score(model, test, train=None, seed=None):
 
         n_preds = len(pos_targets)
         neg_targets = np.setdiff1d(np.arange(len(predictions)), pos_targets)
-        neg_targets = np.random.choice(neg_targets, size=n_preds, replace=False)
+        neg_targets = rng.choice(neg_targets, size=n_preds, replace=False)
 
         # Obtain predictions for all positives
         pos_predictions = predictions[pos_targets]
@@ -220,23 +208,30 @@ def rmse_score(model, test):
 
 
 def summary(
-    model, test: np.ndarray = None, train: np.ndarray = None, seed: int = None
+    est,
+    *,
+    train: np.ndarray,
+    test: np.ndarray,
+    valid: np.ndarray,
+    rng=None,
 ) -> pd.DataFrame:
-    def eval(name, test, train=None):
+    """Summarize all metrics in one DataFrame for train/valid/test"""
+
+    def eval(name, test, train=None, rng=None):
         prec, recall = [
-            vals.mean() for vals in precision_recall_score(model, test, train)
+            vals.mean() for vals in precision_recall_score(est, test, train)
         ]
-        mrr = mrr_score(model, test, train).mean()
-        auc = auc_score(model, test, train, seed).mean()
+        mrr = mrr_score(est, test, train).mean()
+        auc = auc_score(est, test, train, rng).mean()
         return pd.Series(
             dict(prec=prec, recall=recall, mrr=mrr, auc=auc), name=name
         ).to_frame()
 
-    if train is None:
-        return eval("test", test)
+    rng = np.random.default_rng(rng)
 
-    train_res = eval("train", train)
-    test_res = eval("test", test, train)
-    res = pd.concat([train_res, test_res], axis=1)
+    train_res = eval("train", train, rng=rng)
+    valid_res = eval("valid", valid, train, rng=rng)
+    test_res = eval("test", test, train, rng=rng)
+    res = pd.concat([train_res, valid_res, test_res], axis=1)
     res = res.rename_axis("metric")
     return res

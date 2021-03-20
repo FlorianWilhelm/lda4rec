@@ -6,8 +6,9 @@ Note: The Implicit Est class is more or less FMModel from Spotlight
 """
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import Dict, List, Optional
+from typing import Optional
 
+import neptune
 import numpy as np
 import pandas as pd
 import pyro
@@ -91,11 +92,13 @@ class EstimatorMixin(metaclass=ABCMeta):
 class PopEst(EstimatorMixin):
     """Estimator using the popularity"""
 
-    def __init__(self):
+    def __init__(self, rng=None):
         self.pops = None
         self._n_users = None
         self._n_items = None
         self._use_cuda = False
+        # Only for consistence to other estimators
+        self._rng = np.random.default_rng(rng)
 
     def fit(self, interactions):
         self._n_users = interactions.n_users
@@ -131,7 +134,9 @@ class LDA4RecEst(EstimatorMixin):
         learning_rate: float = 0.01,
         use_jit: bool = False,
         use_cuda: bool = False,
-        random_state=None,
+        rng=None,
+        clear_param_store: bool = True,
+        log_steps=100,
     ):
         self.n_topics = n_topics
         self._n_iter = n_iter
@@ -140,8 +145,10 @@ class LDA4RecEst(EstimatorMixin):
         self._use_jit = use_jit
         self._alpha = alpha
         self._use_cuda = use_cuda
-        self._random_state = random_state or np.random.RandomState()
-        set_seed(self._random_state.randint(0, 2 ** 32 - 1), cuda=self._use_cuda)
+        self._clear_param_store = clear_param_store
+        self._log_steps = log_steps
+        self._rng = np.random.default_rng(rng)
+        set_seed(self._rng.integers(0, 2 ** 32 - 1), cuda=self._use_cuda)
 
         # Initialized after fit
         self.pops = None
@@ -158,12 +165,12 @@ class LDA4RecEst(EstimatorMixin):
             params[lda.Param.user_topics_logits], dim=-1
         ).detach()
 
-    def fit(self, interactions, clear_param_store: bool = True, log_steps=100):
+    def fit(self, interactions):
         self._n_users = interactions.n_users
         self._n_items = interactions.n_items
         interactions = torch.tensor(interactions.to_ratings_per_user(), dtype=torch.int)
 
-        if clear_param_store:
+        if self._clear_param_store:
             pyro.clear_param_store()
         pyro.enable_validation(__debug__)
 
@@ -183,7 +190,8 @@ class LDA4RecEst(EstimatorMixin):
 
         for epoch_num in range(self._n_iter):
             epoch_loss = svi.step(**model_params)
-            if epoch_num % log_steps == 0:
+            neptune.log_metric("loss", epoch_loss)
+            if epoch_num % self._log_steps == 0:
                 _logger.info("Epoch {: >5d}: loss {}".format(epoch_num, epoch_loss))
 
         epoch_loss = elbo.loss(lda.model, lda.guide, **model_params)
@@ -217,20 +225,20 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
         learning_rate=1e-2,
         optimizer=None,
         use_cuda=False,
-        random_state=None,
+        rng=None,
         sparse=False,
     ):
         self._model_class = model_class
         self._embedding_dim = embedding_dim
         self._use_cuda = use_cuda
-        self._random_state = random_state or np.random.RandomState()
+        self._rng = np.random.default_rng(rng)
         self._n_iter = n_iter
         self._learning_rate = learning_rate
         self._batch_size = batch_size
         self._l2 = l2
         self._optimizer = optimizer
         self._sparse = sparse
-        set_seed(self._random_state.randint(0, 2 ** 32 - 1), cuda=self._use_cuda)
+        set_seed(self._rng.integers(0, 2 ** 32 - 1), cuda=self._use_cuda)
 
         self._loss = {
             "bpr": bpr_loss,
@@ -282,7 +290,7 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
 
         for epoch_num in range(self._n_iter):
 
-            users, items = shuffle(user_ids, item_ids, random_state=self._random_state)
+            users, items = shuffle(user_ids, item_ids, rng=self._rng)
 
             user_ids_tensor = gpu(torch.from_numpy(users), self._use_cuda)
             item_ids_tensor = gpu(torch.from_numpy(items), self._use_cuda)
@@ -309,6 +317,7 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
 
             epoch_loss /= minibatch_num + 1
 
+            neptune.log_metric("loss", epoch_loss)
             _logger.info("Epoch {: >5d}: loss {}".format(epoch_num, epoch_loss))
 
             if np.isnan(epoch_loss) or epoch_loss == 0.0:
@@ -319,16 +328,14 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
     # ToDo: Check if we cannot just do everything here in PyTorch
     def _get_negative_prediction(self, user_ids):
         """Uniformly samples negative items from the whole item set"""
-        negative_items = sample_items(
-            self._model._n_items, len(user_ids), random_state=self._random_state
-        )
+        negative_items = sample_items(self._model.n_items, len(user_ids), rng=self._rng)
         negative_var = gpu(torch.from_numpy(negative_items), self._use_cuda)
         negative_prediction = self._model(user_ids, negative_var)
 
         return negative_prediction
 
 
-class BilinearEst(BaseEstimator):
+class BilinearBPREst(BaseEstimator):
     def __init__(self, *, loss="bpr", **kwargs):
         super().__init__(model_class=BilinearNet, loss=loss, **kwargs)
 
