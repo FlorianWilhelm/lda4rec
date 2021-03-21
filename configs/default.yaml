@@ -18,9 +18,15 @@ experiment:
     interaction_pivot: 4
     model_seed: 123
     max_user_interactions: 200
-    estimator: BilinearBPREst
+#    estimator: BilinearBPREst
+#    est_params:
+#        embedding_dim: 8
+#        sparse: False
+#        n_iter: 20
+#        learning_rate: 0.01
+    estimator: LDA4RecEst
     est_params:
-        embedding_dim: 8
-        sparse: False
-        n_iter: 20
+        embedding_dim: 4
+        n_iter: 1000
+        batch_size: 128
         learning_rate: 0.01

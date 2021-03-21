@@ -64,7 +64,7 @@ def main(ctx, cfg_path: Path, silent: bool):
     fh.setLevel(cfg["main"]["log_level"])
     logging.getLogger(pkg_logger).addHandler(fh)
     # set up Neptune text logger
-    nh = NeptuneLogHandler(cfg["main"]["name"])
+    nh = NeptuneLogHandler("logging")
     nh.setLevel(cfg["main"]["log_level"])
     logging.getLogger(pkg_logger).addHandler(nh)
 

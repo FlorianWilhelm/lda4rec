@@ -191,8 +191,12 @@ def log_summary(df: pd.DataFrame):
 
 def log_dataset(name, interactions: Interactions):
     neptune.set_property(f"{name}_hash", interactions.hash())
-    for prop_name in ["n_users", "n_items", "n_interactions"]:
-        prop_val = getattr(interactions, prop_name)
+    # we count the actual unique entities in the dataset!
+    for prop_name, prop_val in [
+        ("n_users", len(np.unique(interactions.user_ids))),
+        ("n_items", len(np.unique(interactions.item_ids))),
+        ("n_interactions", len(interactions)),
+    ]:
         neptune.set_property(f"{name}_{prop_name}", prop_val)
 
 

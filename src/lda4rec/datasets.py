@@ -368,10 +368,6 @@ class Interactions(object):
     def __len__(self) -> int:
         return len(self.user_ids)
 
-    @property
-    def n_interactions(self) -> int:
-        return len(self)
-
     def hash(self) -> str:
         data_hash = hashlib.sha1()
         for attr in (

@@ -105,6 +105,7 @@ def model(
 
         user_topics = pyro.sample(
             Site.user_topics,
+            # ToDo: Try out Gamma Prior here
             dist.Dirichlet(alpha * torch.ones(n_topics)),  # prefer sparse
         )  # (n_users | n_topics)
 

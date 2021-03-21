@@ -127,7 +127,7 @@ class LDA4RecEst(EstimatorMixin):
     def __init__(
         self,
         *,
-        n_topics: int,
+        embedding_dim: int,
         n_iter: int,
         alpha: Optional[float] = None,
         batch_size: Optional[int] = 32,
@@ -138,7 +138,9 @@ class LDA4RecEst(EstimatorMixin):
         clear_param_store: bool = True,
         log_steps=100,
     ):
-        self.n_topics = n_topics
+        self._embedding_dim = (
+            embedding_dim  # for easier comparison with other estimators
+        )
         self._n_iter = n_iter
         self._learning_rate = learning_rate
         self._batch_size = batch_size
@@ -176,7 +178,7 @@ class LDA4RecEst(EstimatorMixin):
 
         model_params = dict(
             interactions=interactions,
-            n_topics=self.n_topics,
+            n_topics=self._embedding_dim,
             n_users=self._n_users,
             n_items=self._n_items,
             alpha=self._alpha,
