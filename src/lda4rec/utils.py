@@ -9,7 +9,6 @@ import os.path
 from collections import UserDict
 from collections.abc import MutableMapping
 from datetime import datetime
-from logging import Handler, LogRecord
 from pathlib import Path
 from typing import Any, Dict
 
@@ -198,14 +197,3 @@ def log_dataset(name, interactions: Interactions):
         ("n_interactions", len(interactions)),
     ]:
         neptune.set_property(f"{name}_{prop_name}", prop_val)
-
-
-class NeptuneLogHandler(Handler):
-    def __init__(self, log_name: str, *args, **kwargs):
-        self._log_name = log_name
-        super().__init__(*args, **kwargs)
-
-    def emit(self, record: LogRecord) -> None:
-        msg = self.format(record)
-        for line in msg.splitlines():
-            neptune.log_text(self._log_name, line)

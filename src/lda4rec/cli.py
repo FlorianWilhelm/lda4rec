@@ -12,7 +12,7 @@ from neptunecontrib.api.table import log_table
 from . import __version__, estimators
 from .datasets import get_dataset, random_train_test_split
 from .evaluations import summary
-from .utils import Config, NeptuneLogHandler, flatten_dict, log_dataset, log_summary
+from .utils import Config, flatten_dict, log_dataset, log_summary
 
 # fallback to debugger on error
 sys.excepthook = ultratb.FormattedTB(mode="Verbose", color_scheme="Linux", call_pdb=1)
@@ -63,10 +63,6 @@ def main(ctx, cfg_path: Path, silent: bool):
     fh = logging.FileHandler(log_file)
     fh.setLevel(cfg["main"]["log_level"])
     logging.getLogger(pkg_logger).addHandler(fh)
-    # set up Neptune text logger
-    nh = NeptuneLogHandler("logging")
-    nh.setLevel(cfg["main"]["log_level"])
-    logging.getLogger(pkg_logger).addHandler(nh)
 
     _logger.info(f"Configuration:\n{cfg.yaml_content}")
     ctx.obj = cfg  # pass Config to other commands
