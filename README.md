@@ -52,8 +52,28 @@ lda4rec -c configs/exp_0.yaml run
 ```
 or run all experiments with [pueue] for full control over parallelism:
 ```
-find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "cf-model -c {} evaluate" \;
+find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "lda4rec -c {} run" \;
 ```
+
+## Cloud Setup
+
+Commands for setting up an Ubuntu 20.10 VM with at least 20 GiB of HD:
+```
+sudo apt-get install -y build-essential
+curl https://sh.rustup.rs -sSf | sh
+source $HOME/.cargo/env
+cargo install pueue
+curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O
+sh Miniconda3-latest-Linux-x86_64.sh
+source /home/fwilhelm/.bashrc
+git clone https://github.com/FlorianWilhelm/lda4rec.git # and TOKEN as password !!!
+cd lda4rec
+conda env create -f environment.yml
+conda activate lda4rec
+pueued -d
+vim ~/.neptune_api_token # and copy it over
+```
+
 
 ## Dependency Management & Reproducibility
 
