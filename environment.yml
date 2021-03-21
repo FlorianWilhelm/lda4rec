@@ -18,6 +18,7 @@ dependencies:
   - ipython
   - matplotlib
   - seaborn
+  - h5py  # for reading the Goodbooks dataset
   - psutil # for neptune hardware metrics
   - pip:
      - -e .  # install git checkout of lda4rec in editable mode

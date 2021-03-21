@@ -2,6 +2,7 @@
 Different data sets
 
 Note: Some parts copied over from Spotlight (MIT)
+https://github.com/maciejkula/spotlight/
 """
 from __future__ import annotations
 
@@ -9,11 +10,13 @@ import hashlib
 import logging
 import os
 import shutil
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 from copy import deepcopy
-from typing import Iterable, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, Optional, Tuple, Union
 from zipfile import ZipFile
 
+import h5py
 import numpy as np
 import pandas as pd
 import requests
@@ -22,21 +25,48 @@ from tqdm import tqdm
 
 _logger = logging.getLogger(__name__)
 
-Resource = namedtuple("Resource", ["url", "path", "interactions", "read_csv_args"])
+
+@dataclass()
+class Resource:
+    url: str
+    path: str
+    interactions: str
+    read_args: Optional[Dict[str, Any]] = None
+
 
 # all available datasets
 MOVIELENS_20M = Resource(
     path="ml-20m/raw.zip",
     interactions="ratings.csv",
-    read_csv_args={"names": ["user_id", "item_id", "rating", "timestamp"], "header": 0},
+    read_args={"names": ["user_id", "item_id", "rating", "timestamp"], "header": 0},
     url="http://files.grouplens.org/datasets/movielens/ml-20m.zip",
 )
-# ToDo: Add Movielens 1m
-# hier alles implementieren was es bei lightfm gibt
+MOVIELENS_10M = Resource(
+    path="ml-10m/raw.zip",
+    interactions="ratings.dat",
+    read_args={
+        "names": ["user_id", "item_id", "rating", "timestamp"],
+        "header": 0,
+        "sep": "::",
+        "engine": "python",  # due to > 1 char separator
+    },
+    url="http://files.grouplens.org/datasets/movielens/ml-10m.zip",
+)
+MOVIELENS_1M = Resource(
+    path="ml-1m/raw.zip",
+    interactions="ratings.dat",
+    read_args={
+        "names": ["user_id", "item_id", "rating", "timestamp"],
+        "header": 0,
+        "sep": "::",
+        "engine": "python",  # due to > 1 char separator
+    },
+    url="http://files.grouplens.org/datasets/movielens/ml-1m.zip",
+)
 MOVIELENS_100K_OLD = Resource(
     path="ml100k-old/raw.zip",
     interactions="u.data",
-    read_csv_args={
+    read_args={
         "names": ["user_id", "item_id", "rating", "timestamp"],
         "header": None,
         "sep": "\t",
@@ -46,8 +76,20 @@ MOVIELENS_100K_OLD = Resource(
 MOVIELENS_100K = Resource(
     path="ml-latest-small/raw.zip",
     interactions="ratings.csv",
-    read_csv_args={"names": ["user_id", "item_id", "rating", "timestamp"], "header": 0},
+    read_args={"names": ["user_id", "item_id", "rating", "timestamp"], "header": 0},
     url="http://files.grouplens.org/datasets/movielens/ml-latest-small.zip",
+)
+GOODBOOKS = Resource(
+    path="goodbooks/10k.hdf5",
+    interactions="10k.hdf5",
+    url="https://github.com/zygmuntz/goodbooks-10k/releases/download/v1.0/"
+    "goodbooks-10k.hdf5",
+)
+AMAZON = Resource(
+    path="amazon/co_purchasing.hdf5",
+    interactions="co_purchasing.hdf5",
+    url="https://github.com/maciejkula/recommender_datasets/releases/download/0.1.0/"
+    "amazon_co_purchasing.hdf5",
 )
 
 DATA_DIR = os.path.join(os.path.expanduser("~"), ".lda4rec")
@@ -76,9 +118,18 @@ class UnknownDataset(ValueError):
 
 
 def get_dataset(name: str, *args, **kwargs) -> Interactions:
+    name = name.lower()
     loader = DataLoader(*args, **kwargs)
-    if name.lower() == "movielens-100k":
+    if name == "movielens-100k":
         return loader.load_movielens("100k")
+    elif name == "movielens-1m":
+        return loader.load_movielens("1m")
+    elif name == "movielens-10m":
+        return loader.load_movielens("10m")
+    elif name == "goodbooks":
+        return loader.load_goodbooks()
+    elif name == "amazon":
+        return loader.load_amazon()
     else:
         raise UnknownDataset(f"Unknown dataset: {name}")
 
@@ -88,7 +139,7 @@ class DataLoader(object):
         self.data_dir = data_dir
         self.show_progress = show_progress
 
-    def get_data(self, resource, download_if_missing=True):
+    def get_data(self, resource, download_if_missing=True, unzip=True):
         dest_path = os.path.join(os.path.abspath(self.data_dir), resource.path)
         dir_path = os.path.dirname(dest_path)
         create_data_dir(dir_path)
@@ -98,7 +149,7 @@ class DataLoader(object):
                 download(resource.url, dest_path, self.show_progress)
             else:
                 raise IOError("Dataset missing.")
-        if count_files(dir_path) == 1:
+        if unzip:
             unzip_flat(dest_path, dir_path)
 
         return dir_path
@@ -108,11 +159,13 @@ class DataLoader(object):
             "100k": MOVIELENS_100K,
             "100k-old": MOVIELENS_100K_OLD,
             "20m": MOVIELENS_20M,
+            "10m": MOVIELENS_10M,
+            "1m": MOVIELENS_1M,
         }
         resource = variants[variant]
         dir_path = self.get_data(resource)
         ratings = os.path.join(dir_path, resource.interactions)
-        df = pd.read_csv(ratings, **resource.read_csv_args)
+        df = pd.read_csv(ratings, **resource.read_args)
         user_ids = df.user_id.values
         item_ids = df.item_id.values
         ratings = df.rating.values
@@ -122,6 +175,71 @@ class DataLoader(object):
             user_ids=user_ids, item_ids=item_ids, ratings=ratings
         )
         return interactions
+
+    def load_goodbooks(self):
+        resource = GOODBOOKS
+        dir_path = self.get_data(resource, unzip=False)
+        ratings = os.path.join(dir_path, resource.interactions)
+
+        with h5py.File(ratings, "r") as data:
+            return Interactions(
+                user_ids=data["ratings"][:, 0],
+                item_ids=data["ratings"][:, 1],
+                ratings=data["ratings"][:, 2].astype(np.float32),
+                timestamps=np.arange(len(data["ratings"]), dtype=np.int32),
+            )
+
+    def load_amazon(self, min_user_interactions=10, min_item_interactions=10):
+        def _filter_by_count(elements, min_count):
+            unique_elements, element_counts = np.unique(elements, return_counts=True)
+
+            return unique_elements[element_counts >= min_count]
+
+        def _build_contiguous_map(elements):
+            return dict(zip(elements, np.arange(len(elements)) + 1))
+
+        def _map(elements, mapping):
+            for idx, elem in enumerate(elements):
+                elements[idx] = mapping[elem]
+
+            return elements
+
+        resource = AMAZON
+        dir_path = self.get_data(resource, unzip=False)
+        ratings = os.path.join(dir_path, resource.interactions)
+
+        with h5py.File(ratings, "r") as data:
+            user_ids = data["/user_id"][:]
+            item_ids = data["/item_id"][:]
+            ratings = data["/rating"][:]
+            timestamps = data["/timestamp"][:]
+
+        retain_user_ids = _filter_by_count(user_ids, min_user_interactions)
+        retain_item_ids = _filter_by_count(item_ids, min_item_interactions)
+
+        retain = np.logical_and(
+            np.in1d(user_ids, retain_user_ids), np.in1d(item_ids, retain_item_ids)
+        )
+
+        user_ids = user_ids[retain]
+        item_ids = item_ids[retain]
+        ratings = ratings[retain]
+        timestamps = timestamps[retain]
+
+        retain_user_map = _build_contiguous_map(retain_user_ids)
+        retain_item_map = _build_contiguous_map(retain_item_ids)
+
+        user_ids = _map(user_ids, retain_user_map)
+        item_ids = _map(item_ids, retain_item_map)
+
+        return Interactions(
+            user_ids=user_ids,
+            item_ids=item_ids,
+            ratings=ratings,
+            timestamps=timestamps,
+            n_users=len(retain_user_map) + 1,
+            n_items=len(retain_item_map) + 1,
+        )
 
 
 def download(url, dest_path, show_progress=True):
@@ -158,12 +276,6 @@ def unzip_flat(src_path, dest_dir):
 def create_data_dir(path):
     if not os.path.isdir(path):
         os.makedirs(path)
-
-
-def count_files(path):
-    return len(
-        [name for name in os.listdir(path) if os.path.isfile(os.path.join(path, name))]
-    )
 
 
 class Interactions(object):
