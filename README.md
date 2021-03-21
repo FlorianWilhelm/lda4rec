@@ -2,10 +2,6 @@
 
 Matrix Factorization for Collaborative Filtering is actually an Approximation to a Latent Dirichlet Allocation Problem
 
-## Description
-
-A longer description of your project goes here...
-
 ## Installation
 
 In order to set up the necessary environment:
@@ -42,6 +38,22 @@ Optional and needed only once after `git clone`:
 
 
 Then take a look into the `scripts` and `notebooks` folders.
+
+## Running experiments
+
+First create the configs of the experiments with:
+```
+lda4rec -c configs/default.yaml create
+```
+which populates the `configs` folders with tons of experiments using `default.yaml` as a template.
+Execute a single experiment with:
+```
+lda4rec -c configs/exp_0.yaml run
+```
+or run all experiments with [pueue] for full control over parallelism:
+```
+find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "cf-model -c {} evaluate" \;
+```
 
 ## Dependency Management & Reproducibility
 
@@ -89,12 +101,17 @@ Then take a look into the `scripts` and `notebooks` folders.
 
 ## Note
 
-This project has been set up using PyScaffold 4.0 and the [dsproject extension] 0.6.
-For details and usage information on PyScaffold see https://pyscaffold.org/.
+This project has been set up using [PyScaffold] 4.0 and the [dsproject extension] 0.6.
+Some code was taken from [Spotlight] (MIT-licensed) by Maciej Kula as well as [lrann] (MIT-Licensed) by
+Florian Wilhelm and Marcel Kurovski.
 
+[PyScaffold]: https://pyscaffold.org/
 [conda]: https://docs.conda.io/
 [pre-commit]: https://pre-commit.com/
 [Jupyter]: https://jupyter.org/
 [nbstripout]: https://github.com/kynan/nbstripout
 [Google style]: http://google.github.io/styleguide/pyguide.html#38-comments-and-docstrings
 [dsproject extension]: https://github.com/pyscaffold/pyscaffoldext-dsproject
+[Spotlight]: https://github.com/maciejkula/spotlight
+[pueue]: https://github.com/Nukesor/pueue
+[lrann]: https://github.com/FlorianWilhelm/lrann
