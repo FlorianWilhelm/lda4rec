@@ -11,6 +11,8 @@ neptune:
         api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
     create_experiment:
         name: lda4rec-v1
+        tags: ["movielens-1m", "exp_run1"]
+        description: "Experiment run on GCP"
 
 experiment:
     dataset: movielens-1m
@@ -18,15 +20,9 @@ experiment:
     interaction_pivot: 4
     model_seed: 123
     max_user_interactions: 200
-    estimator: BilinearBPREst
+    estimator: LDA4RecEst
     est_params:
         embedding_dim: 4
-        sparse: False
-        n_iter: 20
+        n_iter: 1000
+        batch_size: 128
         learning_rate: 0.01
-#    estimator: LDA4RecEst
-#    est_params:
-#        embedding_dim: 4
-#        n_iter: 1000
-#        batch_size: 128
-#        learning_rate: 0.01

@@ -92,7 +92,7 @@ class EstimatorMixin(metaclass=ABCMeta):
 class PopEst(EstimatorMixin):
     """Estimator using the popularity"""
 
-    def __init__(self, rng=None):
+    def __init__(self, *, rng=None):
         self.pops = None
         self._n_users = None
         self._n_items = None
@@ -132,7 +132,7 @@ class LDA4RecEst(EstimatorMixin):
         alpha: Optional[float] = None,
         batch_size: Optional[int] = 32,
         learning_rate: float = 0.01,
-        use_jit: bool = False,
+        use_jit: bool = True,
         use_cuda: bool = False,
         rng=None,
         clear_param_store: bool = True,

@@ -128,6 +128,7 @@ def relpath_to_abspath(path: Path, anchor_path: Path):
 class Config(UserDict):
     def __init__(self, path: Path, **kwargs):
         super().__init__()
+        self.path = path
 
         with open(path, "r") as fh:
             self.yaml_content = fh.read()
@@ -136,6 +137,7 @@ class Config(UserDict):
         timestamp = datetime.now()
         # store name of config file for id later
         cfg["main"].setdefault("name", os.path.splitext(path.name)[0])
+        cfg["main"]["path"] = path.parent
         cfg["main"]["log_level"] = getattr(logging, cfg["main"]["log_level"])
         cfg["main"]["timestamp"] = timestamp
         cfg["main"]["timestamp_str"] = timestamp.strftime("%Y-%m-%d_%H:%M:%S")

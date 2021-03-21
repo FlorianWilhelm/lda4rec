@@ -1,10 +1,12 @@
 import logging
 import sys
+from itertools import product
 from pathlib import Path
 
 import click
 import neptune
 import numpy as np
+import yaml
 from IPython.core import ultratb
 from neptune.utils import get_git_info
 from neptunecontrib.api.table import log_table
@@ -36,18 +38,8 @@ _logger = logging.getLogger(__name__)
 def main(ctx, cfg_path: Path, silent: bool):
     """Experimentation tool LDA4Rec"""
 
-    # This handles only configuration, Neptune initialization and logging
+    # This handles only some configuration and dispatches to other commands
     cfg = Config(Path(cfg_path), silent=silent)
-    neptune_cfg = cfg["neptune"]
-    init_cfg = neptune_cfg["init"]
-    exp_cfg = neptune_cfg["create_experiment"]
-    # needs to be determined explicitly because of `console_scripts`
-    git_info = get_git_info(str(Path(__file__).resolve()))
-
-    neptune.init(**init_cfg)
-    neptune.create_experiment(
-        git_info=git_info, params=flatten_dict(cfg["experiment"]), **exp_cfg
-    )
 
     logging.basicConfig(
         stream=sys.stdout,
@@ -64,13 +56,28 @@ def main(ctx, cfg_path: Path, silent: bool):
     fh.setLevel(cfg["main"]["log_level"])
     logging.getLogger(pkg_logger).addHandler(fh)
 
-    _logger.info(f"Configuration:\n{cfg.yaml_content}")
     ctx.obj = cfg  # pass Config to other commands
+
+
+def init_neptune(cfg):
+    neptune_cfg = cfg["neptune"]
+    init_cfg = neptune_cfg["init"]
+    exp_cfg = neptune_cfg["create_experiment"]
+    # needs to be determined explicitly because of `console_scripts`
+    git_info = get_git_info(str(Path(__file__).resolve()))
+
+    neptune.init(**init_cfg)
+    neptune.create_experiment(
+        git_info=git_info, params=flatten_dict(cfg["experiment"]), **exp_cfg
+    )
+    _logger.info(f"Configuration:\n{cfg.yaml_content}")
 
 
 @main.command(name="run")
 @click.pass_obj
 def run_experiment(cfg: Config):
+    """Run the experiment from the config"""
+    init_neptune(cfg)
     exp_cfg = cfg["experiment"]
 
     dataset = get_dataset(exp_cfg["dataset"], data_dir=cfg["main"]["data_path"])
@@ -96,6 +103,64 @@ def run_experiment(cfg: Config):
     log_summary(df.reset_index())
     log_table("summary", df)
     _logger.info(f"Result:\n{df.reset_index()}")
+
+
+def all_experiments(template):
+    def make_configs(exp, model_params_iter):
+        for lr, batch_size, embedding_dim, n_iter in model_params_iter:
+            params = exp["est_params"]
+            params["learning_rate"] = lr
+            params["batch_size"] = batch_size
+            params["embedding_dim"] = embedding_dim
+            params["n_iter"] = n_iter
+            template["experiment"] = exp
+            yield template
+
+    estimators = ["LDA4RecEst", "BilinearBPREst", "PopEst"]
+    datasets = ["movielens-1m"]
+    model_seeds = [3128845410, 2764130162, 4203564202, 2330968889, 3865905591]
+
+    embedding_dims = [4, 8, 12, 16]
+    learning_rates = [0.01]
+    batch_sizes = [32, 64, 128, 256]
+    n_iters_bpr = [10, 25, 50]
+    n_iters_lda4rec = [1000, 3000, 7000]
+
+    for estimator, dataset, model_seed in product(estimators, datasets, model_seeds):
+        exp = {
+            "dataset": dataset,
+            "dataset_seed": 1729,  # keep this constant for reproducibility
+            "interaction_pivot": 4,
+            "model_seed": model_seed,
+            "max_user_interactions": 200,
+            "estimator": estimator,
+            "est_params": {},
+        }
+        if estimator == "PopEst":
+            template["experiment"] = exp
+            yield template
+        elif estimator == "LDA4RecEst":
+            yield from make_configs(
+                exp,
+                product(learning_rates, batch_sizes, embedding_dims, n_iters_lda4rec),
+            )
+        elif estimator == "BilinearBPREst":
+            yield from make_configs(
+                exp,
+                product(learning_rates, batch_sizes, embedding_dims, n_iters_bpr),
+            )
+        else:
+            raise RuntimeError(f"Unknown estimator {estimator}!")
+
+
+@main.command(name="create")
+@click.pass_obj
+def create_experiments(cfg: Config):
+    """Create experiment configurations"""
+    template = yaml.safe_load(cfg.yaml_content)
+    for idx, experiment in enumerate(all_experiments(template)):
+        with open(cfg.path.parent / Path(f"exp_{idx}.yaml"), "w") as fh:
+            yaml.dump(experiment, fh)
 
 
 if __name__ == "__main__":
