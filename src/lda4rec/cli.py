@@ -38,9 +38,24 @@ _logger = logging.getLogger(__name__)
 def main(ctx, cfg_path: Path, silent: bool):
     """Experimentation tool LDA4Rec"""
 
-    # This handles only some configuration and dispatches to other commands
     cfg = Config(Path(cfg_path), silent=silent)
+    ctx.obj = cfg  # pass Config to other commands
 
+
+def init_neptune(cfg):
+    neptune_cfg = cfg["neptune"]
+    init_cfg = neptune_cfg["init"]
+    exp_cfg = neptune_cfg["create_experiment"]
+    # needs to be determined explicitly because of `console_scripts`
+    git_info = get_git_info(str(Path(__file__).resolve()))
+
+    neptune.init(**init_cfg)
+    params = flatten_dict(cfg["experiment"])
+    params["exp_name"] = cfg["main"]["name"]
+    neptune.create_experiment(git_info=git_info, params=params, **exp_cfg)
+
+
+def setup_logging(cfg):
     logging.basicConfig(
         stream=sys.stdout,
         level=cfg["main"]["log_level"],
@@ -55,20 +70,6 @@ def main(ctx, cfg_path: Path, silent: bool):
     fh = logging.FileHandler(log_file)
     fh.setLevel(cfg["main"]["log_level"])
     logging.getLogger(pkg_logger).addHandler(fh)
-
-    ctx.obj = cfg  # pass Config to other commands
-
-
-def init_neptune(cfg):
-    neptune_cfg = cfg["neptune"]
-    init_cfg = neptune_cfg["init"]
-    exp_cfg = neptune_cfg["create_experiment"]
-    # needs to be determined explicitly because of `console_scripts`
-    git_info = get_git_info(str(Path(__file__).resolve()))
-
-    neptune.init(**init_cfg)
-    params = {k: str(v) for k, v in flatten_dict(cfg["experiment"]).items()}
-    neptune.create_experiment(git_info=git_info, params=params, **exp_cfg)
     _logger.info(f"Configuration:\n{cfg.yaml_content}")
 
 
@@ -77,6 +78,7 @@ def init_neptune(cfg):
 def run_experiment(cfg: Config):
     """Run the experiment from the config"""
     init_neptune(cfg)
+    setup_logging(cfg)
     exp_cfg = cfg["experiment"]
 
     dataset = get_dataset(exp_cfg["dataset"], data_dir=cfg["main"]["data_path"])
