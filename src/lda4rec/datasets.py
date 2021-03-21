@@ -5,6 +5,7 @@ Note: Some parts copied over from Spotlight (MIT)
 """
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import shutil
@@ -254,6 +255,26 @@ class Interactions(object):
 
     def __len__(self) -> int:
         return len(self.user_ids)
+
+    @property
+    def n_interactions(self) -> int:
+        return len(self)
+
+    def hash(self) -> str:
+        data_hash = hashlib.sha1()
+        for attr in (
+            self.n_users,
+            self.n_items,
+            self.user_ids,
+            self.item_ids,
+            self.ratings,
+            self.timestamps,
+            self.weights,
+        ):
+            if attr is not None:
+                data_hash.update(np.array(attr))
+
+        return data_hash.hexdigest()
 
     def __getitem__(self, idx: Union[slice, int]) -> Interactions:
         return Interactions(

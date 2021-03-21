@@ -1,11 +1,11 @@
 main:
-    # name: default_name is set to name of config file per default
+    # name: my_name # name is set to name of config file per default
     data_path: '../data'
     log_path: '../logs'
     log_level: INFO # log_level for log files
 
 neptune:
-    activate: false  # set to false to completely deactivate Neptune
+    activate: true  # set to false to completely deactivate Neptune
     init:
         project_qualified_name: florian.wilhelm/lda4rec  # `shared/onboarding` if no account
         api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
@@ -14,8 +14,9 @@ neptune:
 
 experiment:
     dataset: movielens-100k
+    dataset_seed: 1729
     interaction_pivot: 4
-    seed: 123
+    model_seed: 123
     max_user_interactions: 200
     estimator: BilinearBPREst
     est_params:

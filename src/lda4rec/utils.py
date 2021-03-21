@@ -21,6 +21,8 @@ import torch
 import yaml
 from neptune import OfflineBackend
 
+from .datasets import Interactions
+
 _logger = logging.getLogger(__name__)
 
 
@@ -185,6 +187,13 @@ def log_summary(df: pd.DataFrame):
         neptune.log_metric(f"{metric}_train", row["train"])
         neptune.log_metric(f"{metric}_valid", row["valid"])
         neptune.log_metric(f"{metric}_test", row["test"])
+
+
+def log_dataset(name, interactions: Interactions):
+    neptune.set_property(f"{name}_hash", interactions.hash())
+    for prop_name in ["n_users", "n_items", "n_interactions"]:
+        prop_val = getattr(interactions, prop_name)
+        neptune.set_property(f"{name}_{prop_name}", prop_val)
 
 
 class NeptuneLogHandler(Handler):

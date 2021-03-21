@@ -12,7 +12,7 @@ from neptunecontrib.api.table import log_table
 from . import __version__, estimators
 from .datasets import get_dataset, random_train_test_split
 from .evaluations import summary
-from .utils import Config, NeptuneLogHandler, flatten_dict, log_summary
+from .utils import Config, NeptuneLogHandler, flatten_dict, log_dataset, log_summary
 
 # fallback to debugger on error
 sys.excepthook = ultratb.FormattedTB(mode="Verbose", color_scheme="Linux", call_pdb=1)
@@ -80,17 +80,23 @@ def run_experiment(cfg: Config):
     dataset = get_dataset(exp_cfg["dataset"], data_dir=cfg["main"]["data_path"])
     dataset.implicit_(exp_cfg["interaction_pivot"])  # implicit feedback
 
-    rng = np.random.default_rng(exp_cfg["seed"])
-    train, rest = random_train_test_split(dataset, test_percentage=0.10, rng=rng)
-    test, valid = random_train_test_split(rest, test_percentage=0.5, rng=rng)
+    model_rng = np.random.default_rng(exp_cfg["model_seed"])
+    data_rng = np.random.default_rng(exp_cfg["dataset_seed"])
 
-    train.max_user_interactions_(exp_cfg["max_user_interactions"], rng=rng)
+    train, rest = random_train_test_split(dataset, test_percentage=0.10, rng=data_rng)
+    test, valid = random_train_test_split(rest, test_percentage=0.5, rng=data_rng)
+    train.max_user_interactions_(exp_cfg["max_user_interactions"], rng=data_rng)
+
+    for name, data in [("train", train), ("valid", valid), ("test", test)]:
+        log_dataset(name, data)
+        _logger.info(f"{name}: {data}")
+        _logger.info(f"{name}_hash: {data.hash()}")
 
     est_class = getattr(estimators, exp_cfg["estimator"])
-    est = est_class(**exp_cfg["est_params"], rng=rng)
+    est = est_class(**exp_cfg["est_params"], rng=model_rng)
     est.fit(train)
+    df = summary(est, train=train, valid=valid, test=test, rng=model_rng)
 
-    df = summary(est, train=train, valid=valid, test=test)
     log_summary(df.reset_index())
     log_table("summary", df)
     _logger.info(f"Result:\n{df.reset_index()}")

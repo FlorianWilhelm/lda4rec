@@ -18,6 +18,7 @@ dependencies:
   - ipython
   - matplotlib
   - seaborn
+  - psutil # for neptune hardware metrics
   - pip:
      - -e .  # install git checkout of lda4rec in editable mode
      - icecream
@@ -35,4 +36,4 @@ dependencies:
   - nbstripout
   - sphinx
   - recommonmark
-  - nomkl # needed to avoid Error #15: Initializing libiomp5.dylib, but found libiomp5.dylib already initialized
+  - nomkl # needed to avoid Error #15 on Mac: Initializing libiomp5.dylib, but found libiomp5.dylib already initialized
