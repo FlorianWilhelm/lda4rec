@@ -14,38 +14,17 @@ In order to set up the necessary environment:
    ```
    conda activate lda4rec
    ```
-
-> **_NOTE:_**  The conda environment will have lda4rec installed in editable mode.
-> Some changes, e.g. in `setup.cfg`, might require you to run `pip install -e .` again.
-
-
-Optional and needed only once after `git clone`:
-
-3. install several [pre-commit] git hooks with:
-   ```bash
-   pre-commit install
-   # You might also want to run `pre-commit autoupdate`
-   ```
-   and checkout the configuration under `.pre-commit-config.yaml`.
-   The `-n, --no-verify` flag of `git commit` can be used to deactivate pre-commit hooks temporarily.
-
-4. install [nbstripout] git hooks to remove the output cells of committed notebooks with:
-   ```bash
-   nbstripout --install --attributes notebooks/.gitattributes
-   ```
-   This is useful to avoid large diffs due to plots in your notebooks.
-   A simple `nbstripout --uninstall` will revert these changes.
-
-
-Then take a look into the `scripts` and `notebooks` folders.
+3. (optionally) get a free [neptune.ai] account for experiment tracking and save the api token
+   under `~/.neptune_api_token` (default).
 
 ## Running experiments
 
-First create the configs of the experiments with:
+First check out and adapt the default config `configs/default.yaml` which also serves as a template.
+The create the configs of the experiments with:
 ```
 lda4rec -c configs/default.yaml create
 ```
-which populates the `configs` folders with tons of experiments using `default.yaml` as a template.
+which populates the `configs` folders with tons of experiments yaml files.
 Execute a single experiment with:
 ```
 lda4rec -c configs/exp_0.yaml run
@@ -72,6 +51,12 @@ conda env create -f environment.yml
 conda activate lda4rec
 pueued -d
 vim ~/.neptune_api_token # and copy it over
+```
+Then create and run all experiments as defined above:
+```
+export OMP_NUM_THREADS=1
+lda4rec -c configs/default.yaml create
+find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "lda4rec -c {} run" \;
 ```
 
 
@@ -104,11 +89,10 @@ vim ~/.neptune_api_token # and copy it over
 │                              ordering), the creator's initials and a description,
 │                              e.g. `1.0-fw-initial-data-exploration`.
 ├── logs                    <- Generated logs are collected here.
-├── scripts                 <- Analysis and production scripts which import the
-│                              actual PYTHON_PKG, e.g. train_model.
+├── results                 <- Results as exported from neptune.ai.
 ├── setup.cfg               <- Declarative configuration of your project.
 ├── setup.py                <- Use `python setup.py develop` to install for development or
-|                              or create a distribution with `python setup.py bdist_wheel`.
+│                              or create a distribution with `python setup.py bdist_wheel`.
 ├── src
 │   └── lda4rec             <- Actual Python package where the main functionality goes.
 ├── tests                   <- Unit tests which can be run with `py.test`.
@@ -135,3 +119,4 @@ Florian Wilhelm and Marcel Kurovski.
 [Spotlight]: https://github.com/maciejkula/spotlight
 [pueue]: https://github.com/Nukesor/pueue
 [lrann]: https://github.com/FlorianWilhelm/lrann
+[neptune.ai]: https://neptune.ai/

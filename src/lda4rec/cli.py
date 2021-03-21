@@ -67,9 +67,8 @@ def init_neptune(cfg):
     git_info = get_git_info(str(Path(__file__).resolve()))
 
     neptune.init(**init_cfg)
-    neptune.create_experiment(
-        git_info=git_info, params=flatten_dict(cfg["experiment"]), **exp_cfg
-    )
+    params = {k: str(v) for k, v in flatten_dict(cfg["experiment"]).items()}
+    neptune.create_experiment(git_info=git_info, params=params, **exp_cfg)
     _logger.info(f"Configuration:\n{cfg.yaml_content}")
 
 
@@ -124,13 +123,13 @@ def all_experiments(template):
     learning_rates = [0.01]
     batch_sizes = [32, 64, 128, 256]
     n_iters_bpr = [10, 25, 50]
-    n_iters_lda4rec = [1000, 3000, 7000]
+    n_iters_lda4rec = [3000, 6000, 10000]
 
     for estimator, dataset, model_seed in product(estimators, datasets, model_seeds):
         exp = {
             "dataset": dataset,
             "dataset_seed": 1729,  # keep this constant for reproducibility
-            "interaction_pivot": 4,
+            "interaction_pivot": 0,
             "model_seed": model_seed,
             "max_user_interactions": 200,
             "estimator": estimator,
