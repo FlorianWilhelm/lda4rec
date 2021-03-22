@@ -212,7 +212,7 @@ def summary(
     *,
     train: np.ndarray,
     test: np.ndarray,
-    valid: np.ndarray,
+    valid: np.ndarray = None,
     rng=None,
 ) -> pd.DataFrame:
     """Summarize all metrics in one DataFrame for train/valid/test"""
@@ -229,9 +229,15 @@ def summary(
 
     rng = np.random.default_rng(rng)
 
+    res_list = []
     train_res = eval("train", train, rng=rng)
-    valid_res = eval("valid", valid, train, rng=rng)
+    res_list.append(train_res)
+    if valid is not None:
+        valid_res = eval("valid", valid, train, rng=rng)
+        res_list.append(valid_res)
     test_res = eval("test", test, train, rng=rng)
-    res = pd.concat([train_res, valid_res, test_res], axis=1)
+    res_list.append(test_res)
+
+    res = pd.concat(res_list, axis=1)
     res = res.rename_axis("metric")
     return res

@@ -184,10 +184,9 @@ def flatten_dict(d, flat_dict=None):
 
 def log_summary(df: pd.DataFrame):
     for _, row in df.iterrows():
-        metric = row["metric"]
-        neptune.log_metric(f"{metric}_train", row["train"])
-        neptune.log_metric(f"{metric}_valid", row["valid"])
-        neptune.log_metric(f"{metric}_test", row["test"])
+        metric = row.pop("metric")
+        for name, value in row.items():
+            neptune.log_metric(f"{metric}_{name}", value)
 
 
 def log_dataset(name, interactions: Interactions):
