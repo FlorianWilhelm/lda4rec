@@ -7,7 +7,6 @@ import click
 import neptune
 import numpy as np
 import yaml
-from IPython.core import ultratb
 from neptune.utils import get_git_info
 from neptunecontrib.api.table import log_table
 
@@ -15,10 +14,6 @@ from . import __version__, estimators
 from .datasets import get_dataset, random_train_test_split
 from .evaluations import summary
 from .utils import Config, flatten_dict, log_dataset, log_summary
-
-# fallback to debugger on error
-sys.excepthook = ultratb.FormattedTB(mode="Verbose", color_scheme="Linux", call_pdb=1)
-
 
 _logger = logging.getLogger(__name__)
 
@@ -106,7 +101,9 @@ def run_experiment(cfg: Config):
     _logger.info(f"Result:\n{df.reset_index()}")
 
 
-def all_experiments(template):
+def cmp_pop_lda_mf_v1(template):
+    """Compare Popularity, LDA, MF on Movielens 1m"""
+
     def make_configs(exp, model_params_iter):
         for lr, batch_size, embedding_dim, n_iter in model_params_iter:
             params = exp["est_params"]
@@ -155,11 +152,26 @@ def all_experiments(template):
 
 
 @main.command(name="create")
+@click.option(
+    "-e",
+    "--experiment",
+    "exp_name",
+    required=True,
+    type=str,
+    help="name of the experiment to create configs for",
+)
 @click.pass_obj
-def create_experiments(cfg: Config):
+def create_experiments(cfg: Config, exp_name: str):
     """Create experiment configurations"""
     template = yaml.safe_load(cfg.yaml_content)
-    for idx, experiment in enumerate(all_experiments(template)):
+    all_experiments = {"cmp_pop_lda_mf_v1": cmp_pop_lda_mf_v1}
+    experiments_iter = all_experiments.get(exp_name)
+    if experiments_iter is None:
+        options = ", ".join(all_experiments.keys())
+        msg = f"Unknown experiment: {exp_name}. Choose one of: {options}"
+        raise ValueError(msg)
+
+    for idx, experiment in enumerate(experiments_iter(template)):
         with open(cfg.path.parent / Path(f"exp_{idx}.yaml"), "w") as fh:
             yaml.dump(experiment, fh)
 

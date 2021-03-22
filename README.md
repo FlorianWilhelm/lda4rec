@@ -36,7 +36,7 @@ find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "lda4rec -c {} run" \;
 
 ## Cloud Setup
 
-Commands for setting up an Ubuntu 20.10 VM with at least 20 GiB of HD:
+Commands for setting up an Ubuntu 20.10 VM with at least 20 GiB of HD on e.g. a GCP c2-standard-30 instance:
 ```
 sudo apt-get install -y build-essential
 curl https://sh.rustup.rs -sSf | sh
@@ -54,9 +54,10 @@ vim ~/.neptune_api_token # and copy it over
 ```
 Then create and run all experiments as defined above:
 ```
-export OMP_NUM_THREADS=1
+export OMP_NUM_THREADS=4
 lda4rec -c configs/default.yaml create
 find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "lda4rec -c {} run" \;
+pueue parallel 10
 ```
 
 
