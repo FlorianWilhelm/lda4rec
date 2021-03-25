@@ -94,7 +94,7 @@ def run_experiment(cfg: Config):
     est_class = getattr(estimators, exp_cfg["estimator"])
     est = est_class(**exp_cfg["est_params"], rng=model_rng)
     est.fit(train)
-    df = summary(est, train=train, valid=valid, test=test, rng=model_rng)
+    df = summary(est, train=train, valid=valid, test=test, rng=data_rng)
 
     log_summary(df.reset_index())
     log_table("summary", df)
@@ -114,7 +114,7 @@ def cmp_pop_lda_mf_v1(template):
             template["experiment"] = exp
             yield template
 
-    estimators = ["LDA4RecEst", "BilinearBPREst", "PopEst"]
+    estimators = ["LDA4RecEst", "BilinearBPREst", "PopEst", "SPosBilinearBPREst"]
     datasets = ["movielens-1m"]
     model_seeds = [3128845410, 2764130162, 4203564202, 2330968889, 3865905591]
 
@@ -143,6 +143,11 @@ def cmp_pop_lda_mf_v1(template):
                 product(learning_rates, batch_sizes, embedding_dims, n_iters_lda4rec),
             )
         elif estimator == "BilinearBPREst":
+            yield from make_configs(
+                exp,
+                product(learning_rates, batch_sizes, embedding_dims, n_iters_bpr),
+            )
+        elif estimator == "SPosBilinearBPREst":
             yield from make_configs(
                 exp,
                 product(learning_rates, batch_sizes, embedding_dims, n_iters_bpr),

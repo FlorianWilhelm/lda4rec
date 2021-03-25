@@ -135,9 +135,9 @@ class BilinearNet(nn.Module):
         return dot
 
 
-class PosBilinearNet(nn.Module):
+class SPosBilinearNet(nn.Module):
     """
-    Bilinear factorization representation.
+    Semi-Positive Bilinear factorization representation.
     Encodes both users and items as an embedding layer; the score
     for a user-item pair is given by the dot product of the item
     and user latent vectors.
