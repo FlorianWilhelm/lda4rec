@@ -34,7 +34,7 @@ class Resource:
     read_args: Optional[Dict[str, Any]] = None
 
 
-# all available datasets
+# all available datasets resources
 MOVIELENS_20M = Resource(
     path="ml-20m/raw.zip",
     interactions="ratings.csv",
@@ -91,6 +91,15 @@ AMAZON = Resource(
     url="https://github.com/maciejkula/recommender_datasets/releases/download/0.1.0/"
     "amazon_co_purchasing.hdf5",
 )
+ALL_DATASETS = [
+    "movielens-100k",
+    "movielens-100k-old",
+    "movielens-1m",
+    "movielens-10m",
+    "movielens-20m",
+    "goodbooks",
+    "amazon",
+]
 
 DATA_DIR = os.path.join(os.path.expanduser("~"), ".lda4rec")
 
@@ -122,10 +131,14 @@ def get_dataset(name: str, *args, **kwargs) -> Interactions:
     loader = DataLoader(*args, **kwargs)
     if name == "movielens-100k":
         return loader.load_movielens("100k")
+    elif name == "movielens-100k-old":
+        return loader.load_movielens("100k-old")
     elif name == "movielens-1m":
         return loader.load_movielens("1m")
     elif name == "movielens-10m":
         return loader.load_movielens("10m")
+    elif name == "movielens-20m":
+        return loader.load_movielens("20m")
     elif name == "goodbooks":
         return loader.load_goodbooks()
     elif name == "amazon":

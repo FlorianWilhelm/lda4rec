@@ -31,8 +31,9 @@ lda4rec -c configs/exp_0.yaml run
 ```
 or run all experiments with [pueue] for full control over parallelism:
 ```
-find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "lda4rec -c {} run" \;
+find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "lda4rec -c {} run" \; -exec sleep 10 \;
 ```
+Remark: `-exec sleep 10` avoids race condition when reading datasets if parallelism is too high.
 
 ## Cloud Setup
 
@@ -56,7 +57,7 @@ Then create and run all experiments as defined above:
 ```
 export OMP_NUM_THREADS=4
 lda4rec -c configs/default.yaml create
-find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "lda4rec -c {} run" \;
+find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "lda4rec -c {} run" \; -exec sleep 10 \;
 pueue parallel 10
 ```
 

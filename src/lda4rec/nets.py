@@ -227,17 +227,36 @@ class SPosBilinearNet(nn.Module):
         return dot
 
 
-class DeepNet(nn.Module):
+class NNBilinearNet(nn.Module):
+    """
+    Non-negative Bilinear factorization representation.
+    Encodes both users and items as an embedding layer; the score
+    for a user-item pair is given by the dot product of the item
+    and user latent vectors.
+
+    n_users (int): Number of users in the model.
+    n_items (int): Number of items in the model.
+    embedding_dim: int, optional
+        Dimensionality of the latent representations.
+    biases (bool):
+    user_embedding_layer: an embedding layer, optional
+        If supplied, will be used as the user embedding layer
+        of the network.
+    item_embedding_layer: an embedding layer, optional
+        If supplied, will be used as the item embedding layer
+        of the network.
+    sparse: boolean, optional
+        Use sparse gradients.
+    """
+
     def __init__(
         self,
         n_users,
         n_items,
         *,
         embedding_dim=32,
-        activation=nn.Sigmoid(),
         user_embedding_layer=None,
         item_embedding_layer=None,
-        n_hidden_layers=2,
         sparse=False
     ):
         super().__init__()
@@ -245,8 +264,6 @@ class DeepNet(nn.Module):
         self.n_users = n_users
         self.n_items = n_items
         self.embedding_dim = embedding_dim
-        self.n_hidden_layers = n_hidden_layers
-        self.activation = activation
 
         if user_embedding_layer is not None:
             self.user_embeddings = user_embedding_layer
@@ -262,15 +279,8 @@ class DeepNet(nn.Module):
                 n_items, embedding_dim, sparse=sparse
             )
 
-        layer_size = 2 * embedding_dim
-        self._net = nn.Sequential(
-            *[
-                m
-                for _ in range(n_hidden_layers)
-                for m in (nn.Linear(layer_size, layer_size), activation)
-            ],
-            nn.Linear(layer_size, 1)
-        )
+        self.user_biases = ZeroEmbedding(n_users, 1, sparse=sparse)
+        self.item_biases = ZeroEmbedding(n_items, 1, sparse=sparse)
 
     def forward(self, user_ids, item_ids):
         """
@@ -297,5 +307,13 @@ class DeepNet(nn.Module):
         user_embedding = user_embedding.squeeze()
         item_embedding = item_embedding.squeeze()
 
-        embedding = torch.cat([user_embedding, item_embedding], dim=-1)
-        return self._net(embedding).squeeze()
+        user_bias = self.user_biases(user_ids).squeeze()
+        item_bias = self.item_biases(item_ids).squeeze()
+
+        dot = torch.sigmoid(user_embedding) * torch.sigmoid(item_embedding)
+
+        if dot.dim() > 1:  # handles case where embedding_dim=1
+            dot = dot.sum(1)
+
+        dot = dot + user_bias + item_bias
+        return dot

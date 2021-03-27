@@ -11,7 +11,7 @@ from neptune.utils import get_git_info
 from neptunecontrib.api.table import log_table
 
 from . import __version__, estimators
-from .datasets import get_dataset, random_train_test_split
+from .datasets import ALL_DATASETS, get_dataset, random_train_test_split
 from .evaluations import summary
 from .utils import Config, flatten_dict, log_dataset, log_summary
 
@@ -101,31 +101,33 @@ def run_experiment(cfg: Config):
     _logger.info(f"Result:\n{df.reset_index()}")
 
 
-def cmp_pop_lda_mf_v1(template):
-    """Compare Popularity, LDA, MF on Movielens 1m"""
+def experiments_gen(template, dataset):
+    """Generate different experiment config setups"""
 
-    def make_configs(exp, model_params_iter):
-        for lr, batch_size, embedding_dim, n_iter in model_params_iter:
-            params = exp["est_params"]
-            params["learning_rate"] = lr
-            params["batch_size"] = batch_size
-            params["embedding_dim"] = embedding_dim
-            params["n_iter"] = n_iter
-            template["experiment"] = exp
+    def make_configs(exp_cfg, param_names, model_params_iter):
+        for params in model_params_iter:
+            template["experiment"] = exp_cfg
+            for name, param in zip(param_names, params):
+                params_cfg = exp_cfg["est_params"]
+                params_cfg[name] = param
             yield template
 
-    estimators = ["LDA4RecEst", "BilinearBPREst", "PopEst", "SPosBilinearBPREst"]
-    datasets = ["movielens-1m"]
+    estimators = [
+        "LDA4RecEst",
+        "BilinearBPREst",
+        "PopEst",
+        "SPosBilinearBPREst",
+        "NNBilinearBPREst",
+    ]
     model_seeds = [3128845410, 2764130162, 4203564202, 2330968889, 3865905591]
 
-    embedding_dims = [4, 8, 12, 16]
+    embedding_dims = [4, 8, 16, 32, 64]
     learning_rates = [0.01]
-    batch_sizes = [32, 64, 128, 256]
-    n_iters_bpr = [10, 25, 50]
-    n_iters_lda4rec = [3000, 6000, 10000]
+    batch_sizes = [32, 64, 128, 256, 512]
+    n_iters_bilinear = [25, 50, 100]
 
-    for estimator, dataset, model_seed in product(estimators, datasets, model_seeds):
-        exp = {
+    for estimator, model_seed in product(estimators, model_seeds):
+        exp_cfg = {
             "dataset": dataset,
             "dataset_seed": 1729,  # keep this constant for reproducibility
             "interaction_pivot": 0,
@@ -135,48 +137,65 @@ def cmp_pop_lda_mf_v1(template):
             "est_params": {},
         }
         if estimator == "PopEst":
-            template["experiment"] = exp
+            template["experiment"] = exp_cfg
             yield template
         elif estimator == "LDA4RecEst":
-            yield from make_configs(
-                exp,
-                product(learning_rates, batch_sizes, embedding_dims, n_iters_lda4rec),
-            )
+            params = {
+                "embedding_dim": embedding_dims,
+                "learning_rate": learning_rates,
+                "batch_size": batch_sizes,
+                "n_iter": [3000, 6000, 10000],
+                "alpha": [None, 1.0],
+            }
+            yield from make_configs(exp_cfg, params.keys(), product(*params.values()))
         elif estimator == "BilinearBPREst":
-            yield from make_configs(
-                exp,
-                product(learning_rates, batch_sizes, embedding_dims, n_iters_bpr),
-            )
+            params = {
+                "embedding_dim": embedding_dims,
+                "learning_rate": learning_rates,
+                "batch_size": batch_sizes,
+                "n_iter": n_iters_bilinear,
+            }
+            yield from make_configs(exp_cfg, params.keys(), product(*params.values()))
         elif estimator == "SPosBilinearBPREst":
-            yield from make_configs(
-                exp,
-                product(learning_rates, batch_sizes, embedding_dims, n_iters_bpr),
-            )
+            params = {
+                "embedding_dim": embedding_dims,
+                "learning_rate": learning_rates,
+                "batch_size": batch_sizes,
+                "n_iter": n_iters_bilinear,
+            }
+            yield from make_configs(exp_cfg, params.keys(), product(*params.values()))
+        elif estimator == "NNBilinearBPREst":
+            params = {
+                "embedding_dim": embedding_dims,
+                "learning_rate": learning_rates,
+                "batch_size": batch_sizes,
+                "n_iter": n_iters_bilinear,
+            }
+            yield from make_configs(exp_cfg, params.keys(), product(*params.values()))
         else:
             raise RuntimeError(f"Unknown estimator {estimator}!")
 
 
 @main.command(name="create")
 @click.option(
-    "-e",
-    "--experiment",
-    "exp_name",
-    required=True,
+    "-ds",
+    "--dataset",
+    "dataset",
+    default="movielens-100k",
     type=str,
-    help="name of the experiment to create configs for",
+    help="dataset to create experiment configs for",
 )
 @click.pass_obj
-def create_experiments(cfg: Config, exp_name: str):
+def create_experiments(cfg: Config, dataset: str):
     """Create experiment configurations"""
+    dataset = dataset.lower()
     template = yaml.safe_load(cfg.yaml_content)
-    all_experiments = {"cmp_pop_lda_mf_v1": cmp_pop_lda_mf_v1}
-    experiments_iter = all_experiments.get(exp_name)
-    if experiments_iter is None:
-        options = ", ".join(all_experiments.keys())
-        msg = f"Unknown experiment: {exp_name}. Choose one of: {options}"
+    if dataset not in ALL_DATASETS:
+        options = ", ".join(ALL_DATASETS.keys())
+        msg = f"Unknown dataset: {dataset}. Choose one of: {options}"
         raise ValueError(msg)
 
-    for idx, experiment in enumerate(experiments_iter(template)):
+    for idx, experiment in enumerate(experiments_gen(template, dataset=dataset)):
         with open(cfg.path.parent / Path(f"exp_{idx}.yaml"), "w") as fh:
             yaml.dump(experiment, fh)
 
