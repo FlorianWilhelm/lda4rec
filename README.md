@@ -19,21 +19,16 @@ In order to set up the necessary environment:
 
 ## Running experiments
 
-First check out and adapt the default config `configs/default.yaml` which also serves as a template.
-The create the configs of the experiments with:
+First check out and adapt the default experiment config `configs/default.yaml` and run it with:
 ```
-lda4rec -c configs/default.yaml create
+lda4rec -c configs/default.yaml run
 ```
-which populates the `configs` folders with tons of experiments yaml files.
-Execute a single experiment with:
+A config like `configs/default.yaml` can also be used as a template to create an experiment set with:
 ```
-lda4rec -c configs/exp_0.yaml run
+lda4rec -c configs/default.yaml create -ds movielens-100k
 ```
-or run all experiments with [pueue] for full control over parallelism:
-```
-find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "lda4rec -c {} run" \; -exec sleep 10 \;
-```
-Remark: `-exec sleep 10` avoids race condition when reading datasets if parallelism is too high.
+using the Movielens-100k dataset. Check out `cli.py` for more details.
+
 
 ## Cloud Setup
 
@@ -53,13 +48,15 @@ conda activate lda4rec
 pueued -d
 vim ~/.neptune_api_token # and copy it over
 ```
-Then create and run all experiments as defined above:
+Then create and run all experiments for full control over parallelism with [pueue]:
 ```
-export OMP_NUM_THREADS=4
-lda4rec -c configs/default.yaml create
-find ./configs -name "*.yaml" -maxdepth 1 -exec pueue add "lda4rec -c {} run" \; -exec sleep 10 \;
+pueued -d # only once to start the daemon
 pueue parallel 10
+export OMP_NUM_THREADS=4  # to limit then number of threads per model
+lda4rec -c configs/default.yaml create -ds movielens-1m  # or any other dataset
+find ./configs -maxdepth 1 -name "*.yaml" -exec pueue add "lda4rec -c {} run" \; -exec sleep 10 \;
 ```
+Remark: `-exec sleep 10` avoids race condition when reading datasets if parallelism is too high.
 
 
 ## Dependency Management & Reproducibility
