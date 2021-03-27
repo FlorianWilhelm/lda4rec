@@ -137,6 +137,8 @@ class LDA4RecEst(EstimatorMixin):
         rng=None,
         clear_param_store: bool = True,
         log_steps=100,
+        model=None,
+        guide=None,
     ):
         self._embedding_dim = (
             embedding_dim  # for easier comparison with other estimators
@@ -150,6 +152,8 @@ class LDA4RecEst(EstimatorMixin):
         self._clear_param_store = clear_param_store
         self._log_steps = log_steps
         self._rng = np.random.default_rng(rng)
+        self._model = lda.model if model is None else model
+        self._guide = lda.guide if guide is None else guide
         set_seed(self._rng.integers(0, 2 ** 32 - 1), cuda=self._use_cuda)
 
         # Initialized after fit
@@ -188,7 +192,7 @@ class LDA4RecEst(EstimatorMixin):
         Elbo = JitTraceEnum_ELBO if self._use_jit else TraceEnum_ELBO
         elbo = Elbo(max_plate_nesting=2)
         optim = ClippedAdam({"lr": self._learning_rate})
-        svi = SVI(lda.model, lda.guide, optim, elbo)
+        svi = SVI(self._model, self._guide, optim, elbo)
 
         for epoch_num in range(self._n_iter):
             epoch_loss = svi.step(**model_params)
@@ -196,7 +200,7 @@ class LDA4RecEst(EstimatorMixin):
             if epoch_num % self._log_steps == 0:
                 _logger.info("Epoch {: >5d}: loss {}".format(epoch_num, epoch_loss))
 
-        epoch_loss = elbo.loss(lda.model, lda.guide, **model_params)
+        epoch_loss = elbo.loss(self._model, self._guide, **model_params)
         self._initialize()
 
         return epoch_loss
