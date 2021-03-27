@@ -114,17 +114,14 @@ def experiments_gen(template, dataset):
 
     estimators = [
         "LDA4RecEst",
-        "BilinearBPREst",
-        "PopEst",
-        "SPosBilinearBPREst",
         "NNBilinearBPREst",
     ]
     model_seeds = [3128845410, 2764130162, 4203564202, 2330968889, 3865905591]
 
-    embedding_dims = [4, 8, 16, 32, 64]
+    embedding_dims = [4, 8, 12, 16]
     learning_rates = [0.01]
-    batch_sizes = [32, 64, 128, 256, 512]
-    n_iters_bilinear = [25, 50, 100]
+    batch_sizes = [32, 64, 128, 256]
+    n_iters_bilinear = [10, 25, 50]
 
     for estimator, model_seed in product(estimators, model_seeds):
         exp_cfg = {
@@ -145,7 +142,7 @@ def experiments_gen(template, dataset):
                 "learning_rate": learning_rates,
                 "batch_size": batch_sizes,
                 "n_iter": [3000, 6000, 10000],
-                "alpha": [None, 1.0],
+                "alpha": [1.0],
             }
             yield from make_configs(exp_cfg, params.keys(), product(*params.values()))
         elif estimator == "BilinearBPREst":
