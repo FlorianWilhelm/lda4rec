@@ -20,7 +20,7 @@ from pyro.optim import ClippedAdam
 
 from . import lda
 from .losses import adaptive_hinge_loss, bpr_loss, hinge_loss, logistic_loss
-from .nets import BilinearNet, NNBilinearNet, SPosBilinearNet
+from .nets import MFNet, SNMFNet
 from .utils import cpu, gpu, minibatch, process_ids, sample_items, set_seed, shuffle
 
 _logger = logging.getLogger(__name__)
@@ -341,16 +341,11 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
         return negative_prediction
 
 
-class BilinearBPREst(BaseEstimator):
+class MFEst(BaseEstimator):
     def __init__(self, *, loss="bpr", **kwargs):
-        super().__init__(model_class=BilinearNet, loss=loss, **kwargs)
+        super().__init__(model_class=MFNet, loss=loss, **kwargs)
 
 
-class SPosBilinearBPREst(BaseEstimator):
+class SNMFEst(BaseEstimator):
     def __init__(self, *, loss="bpr", **kwargs):
-        super().__init__(model_class=SPosBilinearNet, loss=loss, **kwargs)
-
-
-class NNBilinearBPREst(BaseEstimator):
-    def __init__(self, *, loss="bpr", **kwargs):
-        super().__init__(model_class=NNBilinearNet, loss=loss, **kwargs)
+        super().__init__(model_class=SNMFNet, loss=loss, **kwargs)
