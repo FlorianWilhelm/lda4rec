@@ -2,7 +2,7 @@
 """
 Functions to evaluate a trained model
 
-Note: The file was more or less taken from Spotlight (MIT)
+Note: Some code was taken from Spotlight (MIT)
 """
 
 import numpy as np

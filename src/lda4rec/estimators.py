@@ -322,10 +322,7 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
         return negative_prediction
 
 
-class MFEst(BaseEstimator):
-    def __init__(self, *, loss="bpr", **kwargs):
-        super().__init__(model_class=MFNet, loss=loss, **kwargs)
-
+class LDATrafoMixin(object):
     def get_nmf(self, user_id):
         """Get NMF representation for a single user_id"""
         user_id, item_ids = process_ids(
@@ -342,12 +339,13 @@ class MFEst(BaseEstimator):
         w = torch.cat([w_pos, w_neg], dim=1)
         h = torch.cat([h, -h], dim=1)
 
-        h += torch.min(h, dim=0).values.abs()
-        b += torch.min(b).abs()
+        h += torch.minimum(torch.min(h, dim=0).values, torch.zeros(h.shape[1])).abs()
+        b += torch.minimum(torch.min(b), torch.zeros(1)).abs()
 
         assert torch.all(h >= 0.0)
         assert torch.all(w >= 0.0)
         assert torch.all(b >= 0.0)
+
         return w, h, b
 
     def get_pqt(self, user_id, eps=1e-6):
@@ -367,14 +365,21 @@ class MFEst(BaseEstimator):
 
         return p, q, t
 
-    def get_item_probs(self, user_id, eps=1e-6):
+    def get_item_probs(self, user_id, eps=1e-6) -> np.array:
         p, q, _ = self.get_pqt(user_id, eps=eps)
         probs = torch.matmul(p, q.T).squeeze()
+
         assert torch.all(probs >= 0.0)
         assert (probs.sum() - 1.0).abs() <= eps
+
         return probs.numpy()
 
 
-class SNMFEst(BaseEstimator):
+class MFEst(BaseEstimator, LDATrafoMixin):
+    def __init__(self, *, loss="bpr", **kwargs):
+        super().__init__(model_class=MFNet, loss=loss, **kwargs)
+
+
+class SNMFEst(BaseEstimator, LDATrafoMixin):
     def __init__(self, *, loss="bpr", **kwargs):
         super().__init__(model_class=SNMFNet, loss=loss, **kwargs)
