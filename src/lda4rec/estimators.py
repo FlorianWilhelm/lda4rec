@@ -326,8 +326,53 @@ class MFEst(BaseEstimator):
     def __init__(self, *, loss="bpr", **kwargs):
         super().__init__(model_class=MFNet, loss=loss, **kwargs)
 
-    def get_pq(self, user_id):
-        return
+    def get_nmf(self, user_id):
+        """Get NMF representation for a single user_id"""
+        user_id, item_ids = process_ids(
+            user_id, None, self._n_items, self._use_cuda, cartesian=False
+        )
+        w = self._model.user_embeddings(user_id[0]).detach().unsqueeze(0)
+        b = self._model.item_biases(item_ids).squeeze().detach()
+        h = self._model.item_embeddings(item_ids).detach()
+
+        w_pos, w_neg = torch.zeros_like(w), torch.zeros_like(w)
+        pos_mask = w >= 0
+        neg_mask = ~pos_mask
+        w_pos[pos_mask], w_neg[neg_mask] = w[pos_mask], -w[neg_mask]
+        w = torch.cat([w_pos, w_neg], dim=1)
+        h = torch.cat([h, -h], dim=1)
+
+        h += torch.min(h, dim=0).values.abs()
+        b += torch.min(b).abs()
+
+        assert torch.all(h >= 0.0)
+        assert torch.all(w >= 0.0)
+        assert torch.all(b >= 0.0)
+        return w, h, b
+
+    def get_pqt(self, user_id, eps=1e-6):
+        w, h, b = self.get_nmf(user_id)
+        t = w.sum()
+        q = h + b.unsqueeze(-1) / t
+        n = q.sum(dim=0)
+        q = q / n
+        p = w * n
+        p = p / p.sum()
+
+        assert torch.all(p >= 0.0)
+        assert torch.all(q >= 0.0)
+        assert (p.sum() - 1.0).abs() <= eps
+        topic_sums = (q.sum(dim=0) - np.ones(q.shape[1])).abs()
+        assert torch.all(topic_sums <= eps * topic_sums.shape[0])
+
+        return p, q, t
+
+    def get_item_probs(self, user_id, eps=1e-6):
+        p, q, _ = self.get_pqt(user_id, eps=eps)
+        probs = torch.matmul(p, q.T).squeeze()
+        assert torch.all(probs >= 0.0)
+        assert (probs.sum() - 1.0).abs() <= eps
+        return probs.numpy()
 
 
 class SNMFEst(BaseEstimator):

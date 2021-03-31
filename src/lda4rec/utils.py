@@ -198,3 +198,20 @@ def log_dataset(name, interactions: Interactions):
         ("n_interactions", len(interactions)),
     ]:
         neptune.set_property(f"{name}_{prop_name}", prop_val)
+
+
+def cmp_ranks(orig_scores, alt_scores, eps=1e-4):
+    """Compare ranking of scores forgiving rounding errors"""
+    orig_ranks = np.argsort(orig_scores)
+    alt_ranks = np.argsort(alt_scores)
+
+    for idx in np.where(orig_ranks != alt_ranks)[0]:
+        twin1 = orig_ranks[idx]
+        twin2 = alt_ranks[idx]
+        orig_delta = abs(orig_scores[twin1] - orig_scores[twin2])
+        alt_delta = abs(alt_scores[twin1] - alt_scores[twin2])
+
+        # false if permutation is not due to similar scores (-> rounding errors)
+        if orig_delta + alt_delta > eps:
+            return False
+    return True
