@@ -2,7 +2,7 @@
 """
 Estimators
 
-Note: The Implicit Est class is more or less FMModel from Spotlight
+Note: Some code was taken from Spotlight (MIT)
 """
 import logging
 from abc import ABCMeta, abstractmethod
@@ -19,6 +19,7 @@ from pyro.infer import SVI, JitTraceEnum_ELBO, TraceEnum_ELBO
 from pyro.optim import ClippedAdam
 
 from . import lda
+from .datasets import Interactions
 from .losses import adaptive_hinge_loss, bpr_loss, hinge_loss, logistic_loss
 from .nets import MFNet, SNMFNet
 from .utils import cpu, gpu, minibatch, process_ids, sample_items, set_seed, shuffle
@@ -49,26 +50,18 @@ class EstimatorMixin(metaclass=ABCMeta):
 
         Use this as Mixin to avoid double implementation
 
-        Parameters
-        ----------
+        Args:
+            user_ids (int or array): If int, will predict the recommendation scores
+                for this user for all items in item_ids. If an array, will predict
+                scores for all (user, item) pairs defined by user_ids and item_ids.
+            item_ids (array, optional): Array containing the item ids for which
+                prediction scores are desired. If not supplied, predictions for all
+                items will be computed.
+            cartesian (bool, optional): Calculate the prediction for each item times
+                each user.
 
-        user_ids: int or array
-           If int, will predict the recommendation scores for this
-           user for all items in item_ids. If an array, will predict
-           scores for all (user, item) pairs defined by user_ids and
-           item_ids.
-        item_ids: array, optional
-            Array containing the item ids for which prediction scores
-            are desired. If not supplied, predictions for all items
-            will be computed.
-        cartesian: bool, optional
-            Calculate the prediction for each item times each user
-
-        Returns
-        -------
-
-        predictions: np.array
-            Predicted scores for all items in item_ids.
+        Returns:
+            np.array: Predicted scores for all items in item_ids.
         """
         if np.isscalar(user_ids):
             n_users = 1
@@ -217,7 +210,7 @@ class LDA4RecEst(EstimatorMixin):
 
 
 class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
-    """Factorization Machine estimator for implicit feedback using BPR"""
+    """Base estimator handling implicit feedback training and prediction"""
 
     def __init__(
         self,
@@ -272,20 +265,8 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
         else:
             self._optimizer = self._optimizer(self._model.parameters())
 
-    def fit(self, interactions):
-        """
-        Fit the model.
-
-        When called repeatedly, model fitting will resume from
-        the point at which training stopped in the previous fit
-        call.
-
-        Parameters
-        ----------
-
-        interactions: :class:`spotlight.interactions.Interactions`
-            The input dataset.
-        """
+    def fit(self, interactions: Interactions):
+        """Fit the model"""
         self._initialize(interactions)
         self._model.train(True)
 
@@ -344,6 +325,9 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
 class MFEst(BaseEstimator):
     def __init__(self, *, loss="bpr", **kwargs):
         super().__init__(model_class=MFNet, loss=loss, **kwargs)
+
+    def get_pq(self, user_id):
+        return
 
 
 class SNMFEst(BaseEstimator):

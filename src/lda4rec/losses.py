@@ -20,22 +20,17 @@ def pointwise_loss(positive_predictions, negative_predictions, mask=None):
     """
     Logistic loss function.
 
-    Parameters
-    ----------
+    Args:
+        positive_predictions: tensor
+            Tensor containing predictions for known positive items.
+        negative_predictions: tensor
+            Tensor containing predictions for sampled negative items.
+        mask: tensor, optional
+            A binary tensor used to zero the loss from some entries
+            of the loss tensor.
 
-    positive_predictions: tensor
-        Tensor containing predictions for known positive items.
-    negative_predictions: tensor
-        Tensor containing predictions for sampled negative items.
-    mask: tensor, optional
-        A binary tensor used to zero the loss from some entries
-        of the loss tensor.
-
-    Returns
-    -------
-
-    loss, float
-        The mean value of the loss function.
+    Returns:
+        float: The mean value of the loss function.
     """
     positives_loss = 1.0 - torch.sigmoid(positive_predictions)
     negatives_loss = torch.sigmoid(negative_predictions)
@@ -54,29 +49,22 @@ def bpr_loss(positive_predictions, negative_predictions, mask=None):
     """
     Bayesian Personalised Ranking [1]_ pairwise loss function.
 
-    Parameters
-    ----------
+    Args:
+        positive_predictions: tensor
+            Tensor containing predictions for known positive items.
+        negative_predictions: tensor
+            Tensor containing predictions for sampled negative items.
+        mask: tensor, optional
+            A binary tensor used to zero the loss from some entries
+            of the loss tensor.
 
-    positive_predictions: tensor
-        Tensor containing predictions for known positive items.
-    negative_predictions: tensor
-        Tensor containing predictions for sampled negative items.
-    mask: tensor, optional
-        A binary tensor used to zero the loss from some entries
-        of the loss tensor.
+    Returns:
+        float: The mean value of the loss function.
 
-    Returns
-    -------
-
-    loss, float
-        The mean value of the loss function.
-
-    References
-    ----------
-
-    .. [1] Rendle, Steffen, et al. "BPR: Bayesian personalized ranking from
-       implicit feedback." Proceedings of the twenty-fifth conference on
-       uncertainty in artificial intelligence. AUAI Press, 2009.
+    References:
+        .. [1] Rendle, Steffen, et al. "BPR: Bayesian personalized ranking from
+           implicit feedback." Proceedings of the twenty-fifth conference on
+           uncertainty in artificial intelligence. AUAI Press, 2009.
     """
     loss = 1.0 - torch.sigmoid(positive_predictions - negative_predictions)
 
@@ -129,31 +117,24 @@ def adaptive_hinge_loss(positive_predictions, negative_predictions, mask=None):
     Approximates the idea of weighted approximate-rank pairwise loss
     introduced in [2]_
 
-    Parameters
-    ----------
+    Args:
+        positive_predictions: tensor
+            Tensor containing predictions for known positive items.
+        negative_predictions: tensor
+            Iterable of tensors containing predictions for sampled negative items.
+            More tensors increase the likelihood of finding ranking-violating
+            pairs, but risk overfitting.
+        mask: tensor, optional
+            A binary tensor used to zero the loss from some entries
+            of the loss tensor.
 
-    positive_predictions: tensor
-        Tensor containing predictions for known positive items.
-    negative_predictions: tensor
-        Iterable of tensors containing predictions for sampled negative items.
-        More tensors increase the likelihood of finding ranking-violating
-        pairs, but risk overfitting.
-    mask: tensor, optional
-        A binary tensor used to zero the loss from some entries
-        of the loss tensor.
+    Returns:
+        float: The mean value of the loss function.
 
-    Returns
-    -------
-
-    loss, float
-        The mean value of the loss function.
-
-    References
-    ----------
-
-    .. [2] Weston, Jason, Samy Bengio, and Nicolas Usunier. "Wsabie:
-       Scaling up to large vocabulary image annotation." IJCAI.
-       Vol. 11. 2011.
+    References:
+        .. [2] Weston, Jason, Samy Bengio, and Nicolas Usunier. "Wsabie:
+           Scaling up to large vocabulary image annotation." IJCAI.
+           Vol. 11. 2011.
     """
     highest_negative_predictions, _ = torch.max(negative_predictions, 0)
 
@@ -166,19 +147,14 @@ def regression_loss(observed_ratings, predicted_ratings):
     """
     Regression loss.
 
-    Parameters
-    ----------
+    Args:
+        observed_ratings: tensor
+            Tensor containing observed ratings.
+        predicted_ratings: tensor
+            Tensor containing rating predictions.
 
-    observed_ratings: tensor
-        Tensor containing observed ratings.
-    predicted_ratings: tensor
-        Tensor containing rating predictions.
-
-    Returns
-    -------
-
-    loss, float
-        The mean value of the loss function.
+    Returns:
+        float: The mean value of the loss function.
     """
     assert_no_grad(observed_ratings)
 
@@ -189,19 +165,14 @@ def poisson_loss(observed_ratings, predicted_ratings):
     """
     Poisson loss.
 
-    Parameters
-    ----------
+    Args:
+        observed_ratings: tensor
+            Tensor containing observed ratings.
+        predicted_ratings: tensor
+            Tensor containing rating predictions.
 
-    observed_ratings: tensor
-        Tensor containing observed ratings.
-    predicted_ratings: tensor
-        Tensor containing rating predictions.
-
-    Returns
-    -------
-
-    loss, float
-        The mean value of the loss function.
+    Returns:
+        float: The mean value of the loss function.
     """
     assert_no_grad(observed_ratings)
 
@@ -212,20 +183,15 @@ def logistic_loss(observed_ratings, predicted_ratings):
     """
     Logistic loss for explicit data.
 
-    Parameters
-    ----------
+    Args:
+        observed_ratings: tensor
+            Tensor containing observed ratings which
+            should be +1 or -1 for this loss function.
+        predicted_ratings: tensor
+            Tensor containing rating predictions.
 
-    observed_ratings: tensor
-        Tensor containing observed ratings which
-        should be +1 or -1 for this loss function.
-    predicted_ratings: tensor
-        Tensor containing rating predictions.
-
-    Returns
-    -------
-
-    loss, float
-        The mean value of the loss function.
+    Returns:
+        float: The mean value of the loss function.
     """
     assert_no_grad(observed_ratings)
 

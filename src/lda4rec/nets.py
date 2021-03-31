@@ -51,19 +51,20 @@ class MFNet(nn.Module):
     for a user-item pair is given by the dot product of the item
     and user latent vectors.
 
-    n_users (int): Number of users in the model.
-    n_items (int): Number of items in the model.
-    embedding_dim: int, optional
-        Dimensionality of the latent representations.
-    biases (bool):
-    user_embedding_layer: an embedding layer, optional
-        If supplied, will be used as the user embedding layer
-        of the network.
-    item_embedding_layer: an embedding layer, optional
-        If supplied, will be used as the item embedding layer
-        of the network.
-    sparse: boolean, optional
-        Use sparse gradients.
+    Args:
+        n_users (int): Number of users in the model.
+        n_items (int): Number of items in the model.
+        embedding_dim: int, optional
+            Dimensionality of the latent representations.
+        biases (bool):
+        user_embedding_layer: an embedding layer, optional
+            If supplied, will be used as the user embedding layer
+            of the network.
+        item_embedding_layer: an embedding layer, optional
+            If supplied, will be used as the item embedding layer
+            of the network.
+        sparse: boolean, optional
+            Use sparse gradients.
     """
 
     def __init__(
@@ -103,19 +104,12 @@ class MFNet(nn.Module):
         """
         Compute the forward pass of the representation.
 
-        Parameters
-        ----------
+        Args:
+            user_ids (tensor): Tensor of user indices.
+        item_ids (tensor): Tensor of item indices.
 
-        user_ids: tensor
-            Tensor of user indices.
-        item_ids: tensor
-            Tensor of item indices.
-
-        Returns
-        -------
-
-        predictions: tensor
-            Tensor of predictions.
+        Returns:
+            tensor: Tensor of predictions.
         """
 
         user_embedding = self.user_embeddings(user_ids)
@@ -137,24 +131,25 @@ class MFNet(nn.Module):
 
 class SNMFNet(nn.Module):
     """
-    Semi-Positive Bilinear factorization representation.
+    Semi-Non-Negative factorization representation.
     Encodes both users and items as an embedding layer; the score
     for a user-item pair is given by the dot product of the item
     and user latent vectors.
 
-    n_users (int): Number of users in the model.
-    n_items (int): Number of items in the model.
-    embedding_dim: int, optional
-        Dimensionality of the latent representations.
-    biases (bool):
-    user_embedding_layer: an embedding layer, optional
-        If supplied, will be used as the user embedding layer
-        of the network.
-    item_embedding_layer: an embedding layer, optional
-        If supplied, will be used as the item embedding layer
-        of the network.
-    sparse: boolean, optional
-        Use sparse gradients.
+    Args:
+        n_users (int): Number of users in the model.
+        n_items (int): Number of items in the model.
+        embedding_dim: int, optional
+            Dimensionality of the latent representations.
+        biases (bool):
+        user_embedding_layer: an embedding layer, optional
+            If supplied, will be used as the user embedding layer
+            of the network.
+        item_embedding_layer: an embedding layer, optional
+            If supplied, will be used as the item embedding layer
+            of the network.
+        sparse: boolean, optional
+            Use sparse gradients.
     """
 
     def __init__(
@@ -194,19 +189,12 @@ class SNMFNet(nn.Module):
         """
         Compute the forward pass of the representation.
 
-        Parameters
-        ----------
+        Args:
+            user_ids (tensor): Tensor of user indices.
+        item_ids (tensor): Tensor of item indices.
 
-        user_ids: tensor
-            Tensor of user indices.
-        item_ids: tensor
-            Tensor of item indices.
-
-        Returns
-        -------
-
-        predictions: tensor
-            Tensor of predictions.
+        Returns:
+            tensor: Tensor of predictions.
         """
 
         user_embedding = self.user_embeddings(user_ids)

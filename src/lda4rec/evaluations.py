@@ -19,23 +19,18 @@ def mrr_score(model, test, train=None):
     set, representing the mean reciprocal rank of all their
     test items.
 
-    Parameters
-    ----------
+    Args:
+        model: fitted instance of a recommender model
+            The model to evaluate.
+        test: :class:`spotlight.interactions.Interactions`
+            Test interactions.
+        train: :class:`spotlight.interactions.Interactions`, optional
+            Train interactions. If supplied, scores of known
+            interactions will be set to very low values and so not
+            affect the MRR.
 
-    model: fitted instance of a recommender model
-        The model to evaluate.
-    test: :class:`spotlight.interactions.Interactions`
-        Test interactions.
-    train: :class:`spotlight.interactions.Interactions`, optional
-        Train interactions. If supplied, scores of known
-        interactions will be set to very low values and so not
-        affect the MRR.
-
-    Returns
-    -------
-
-    mrr scores: numpy array of shape (num_users,)
-        Array of MRR scores for each user in test.
+    Returns:
+        numpy array of shape (num_users,): Array of MRR scores for each user in test.
     """
 
     test = test.to_csr()
@@ -77,22 +72,19 @@ def precision_recall_score(model, test, train=None, k=10):
     set, representing the Precision@k and Recall@k of all their
     test items.
 
-    Parameters
-    ----------
+    Args:
+        model: fitted instance of a recommender model
+            The model to evaluate.
+        test: :class:`spotlight.interactions.Interactions`
+            Test interactions.
+        train: :class:`spotlight.interactions.Interactions`, optional
+            Train interactions. If supplied, scores of known
+            interactions will not affect the computed metrics.
+        k: int or array of int,
+            The maximum number of predicted items
 
-    model: fitted instance of a recommender model
-        The model to evaluate.
-    test: :class:`spotlight.interactions.Interactions`
-        Test interactions.
-    train: :class:`spotlight.interactions.Interactions`, optional
-        Train interactions. If supplied, scores of known
-        interactions will not affect the computed metrics.
-    k: int or array of int,
-        The maximum number of predicted items
-    Returns
-    -------
-
-    (Precision@k, Recall@k): numpy array of shape (num_users, len(k))
+    Returns:
+        numpy array of shape (num_users, len(k)): (Precision@k, Recall@k)
         A tuple of Precisions@k and Recalls@k for each user in test.
         If k is a scalar, will return a tuple of vectors. If k is an
         array, will return a tuple of arrays, where each row corresponds
@@ -187,19 +179,14 @@ def rmse_score(model, test):
     """
     Compute RMSE score for test interactions.
 
-    Parameters
-    ----------
+    Args:
+        model: fitted instance of a recommender model
+            The model to evaluate.
+        test: :class:`spotlight.interactions.Interactions`
+            Test interactions.
 
-    model: fitted instance of a recommender model
-        The model to evaluate.
-    test: :class:`spotlight.interactions.Interactions`
-        Test interactions.
-
-    Returns
-    -------
-
-    rmse_score: float
-        The RMSE score.
+    Returns:
+        float: nThe RMSE score.
     """
     predictions = model.predict(test.user_ids, test.item_ids)
     ratings = np.clip(test.ratings_batch, 0, 1)  # bring -1 to 0

@@ -307,45 +307,41 @@ class Interactions(object):
     ratings should be provided for all user-item-rating triplets
     that were observed in the dataset.
 
-    Parameters
-    ----------
+    Args:
+        user_ids: array of np.int32
+            array of user ids of the user-item pairs
+        item_ids: array of np.int32
+            array of item ids of the user-item pairs
+        ratings: array of np.float32, optional
+            array of ratings
+        timestamps: array of np.int32, optional
+            array of timestamps
+        weights: array of np.float32, optional
+            array of weights
+        num_users: int, optional
+            Number of distinct users in the dataset.
+            Must be larger than the maximum user id
+            in user_ids.
+        num_items: int, optional
+            Number of distinct items in the dataset.
+            Must be larger than the maximum item id
+            in item_ids.
 
-    user_ids: array of np.int32
-        array of user ids of the user-item pairs
-    item_ids: array of np.int32
-        array of item ids of the user-item pairs
-    ratings: array of np.float32, optional
-        array of ratings
-    timestamps: array of np.int32, optional
-        array of timestamps
-    weights: array of np.float32, optional
-        array of weights
-    num_users: int, optional
-        Number of distinct users in the dataset.
-        Must be larger than the maximum user id
-        in user_ids.
-    num_items: int, optional
-        Number of distinct items in the dataset.
-        Must be larger than the maximum item id
-        in item_ids.
-
-    Attributes
-    ----------
-
-    user_ids: array of np.int32
-        array of user ids of the user-item pairs
-    item_ids: array of np.int32
-        array of item ids of the user-item pairs
-    ratings: array of np.float32, optional
-        array of ratings
-    timestamps: array of np.int32, optional
-        array of timestamps
-    weights: array of np.float32, optional
-        array of weights
-    n_users: int, optional
-        Number of distinct users in the dataset.
-    n_items: int, optional
-        Number of distinct items in the dataset.
+    Attributes:
+        user_ids: array of np.int32
+            array of user ids of the user-item pairs
+        item_ids: array of np.int32
+            array of item ids of the user-item pairs
+        ratings: array of np.float32, optional
+            array of ratings
+        timestamps: array of np.int32, optional
+            array of timestamps
+        weights: array of np.float32, optional
+            array of weights
+        n_users: int, optional
+            Number of distinct users in the dataset.
+        n_items: int, optional
+            Number of distinct items in the dataset.
     """
 
     def __init__(
