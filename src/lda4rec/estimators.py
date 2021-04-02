@@ -15,7 +15,7 @@ import pyro
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-from pyro.infer import SVI, JitTraceEnum_ELBO, TraceEnum_ELBO
+from pyro.infer import SVI, JitTraceEnum_ELBO, Predictive, TraceEnum_ELBO
 from pyro.optim import ClippedAdam
 
 from . import lda
@@ -132,6 +132,7 @@ class LDA4RecEst(EstimatorMixin):
         log_steps=100,
         model=None,
         guide=None,
+        n_samples=10_000,
     ):
         self._embedding_dim = (
             embedding_dim  # for easier comparison with other estimators
@@ -147,6 +148,7 @@ class LDA4RecEst(EstimatorMixin):
         self._rng = np.random.default_rng(rng)
         self._model = lda.model if model is None else model
         self._guide = lda.guide if guide is None else guide
+        self._n_samples = n_samples
         set_seed(self._rng.integers(0, 2 ** 32 - 1), cuda=self._use_cuda)
 
         # Initialized after fit
@@ -155,14 +157,17 @@ class LDA4RecEst(EstimatorMixin):
         self.topic_items = None
         self._n_users = None
         self._n_items = None
+        self._model_params = None
 
-    def _initialize(self):
+    def _initialize(self, model_params):
+        self._model_params = model_params
         params = pyro.get_param_store()
         self.pops = params[lda.Param.item_pops_loc].detach()
         self.topic_items = params[lda.Param.topic_items_loc].detach()
         self.user_topics = F.softmax(
             params[lda.Param.user_topics_logits], dim=-1
         ).detach()
+        self.user_pop_devs = params[lda.Param.user_pop_devs_loc].detach()
 
     def fit(self, interactions):
         self._n_users = interactions.n_users
@@ -194,19 +199,42 @@ class LDA4RecEst(EstimatorMixin):
                 _logger.info("Epoch {: >5d}: loss {}".format(epoch_num, epoch_loss))
 
         epoch_loss = elbo.loss(self._model, self._guide, **model_params)
-        self._initialize()
+        self._initialize(model_params)
 
         return epoch_loss
 
     def _predict(self, user_ids, item_ids):
-        user_embedding = self.user_topics[user_ids]
-        item_embedding = self.topic_items[:, item_ids].T
+        assert len(torch.unique(user_ids)) == 1, "invalid usage"
 
-        dot = user_embedding * item_embedding
-        if dot.dim() > 1:  # handles case where embedding_dim=1
-            dot = dot.sum(1)
+        user_id = user_ids[0]
+        params = self._model_params.copy()
+        params["batch_size"] = None
+        del params["interactions"]
+        params["user_id"] = user_id
 
-        return dot + self.pops[item_ids]
+        predictive = Predictive(
+            lda.pred_model,
+            guide=lda.pred_guide,
+            num_samples=self._n_samples,
+            return_sites=[lda.Site.interactions],
+            parallel=False,
+        )
+        items = predictive(**params)["interactions"].squeeze(1)
+        counts = torch.bincount(items, minlength=self._n_items)
+        # break ties by randomly adding values from [0, 1)
+        counts = counts + torch.rand(counts.shape)
+
+        # user_topics = self.user_topics[user_ids]
+        # topic_items = self.topic_items[:, item_ids].T
+        # item_pops = self.pops[item_ids].unsqueeze(1)
+        # user_pop_devs = self.user_pop_devs[user_ids].unsqueeze(1)
+        # topic_prefs = topic_items + user_pop_devs * item_pops
+        #
+        # dot = user_topics * topic_prefs
+        # if dot.dim() > 1:  # handles case where embedding_dim=1
+        #     dot = dot.sum(1)
+
+        return counts
 
 
 class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
@@ -322,7 +350,14 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
         return negative_prediction
 
 
-class LDATrafoMixin(object):
+class LDATrafoMixin(metaclass=ABCMeta):
+    """Mixin transforming MF to adjoint LDA formulation"""
+
+    def __init__(self, *args, **kwargs):
+        # Toggle this instance variable for predicting with LDA formulation
+        self.lda_trafo = False
+        super().__init__(*args, **kwargs)
+
     def get_nmf(self, user_id):
         """Get NMF representation for a single user_id"""
         user_id, item_ids = process_ids(
@@ -374,12 +409,20 @@ class LDATrafoMixin(object):
 
         return probs.numpy()
 
+    def _predict(self, user_ids, item_ids):
+        if self.lda_trafo:
+            assert len(torch.unique(user_ids)) == 1, "invalid usage"
+            return self.get_item_probs(user_ids[0], eps=1e-4)
+        else:
+            # dispatch to BaseEstimator, if gods of the MRO have mercy on me
+            return super()._predict(user_ids, item_ids)
 
-class MFEst(BaseEstimator, LDATrafoMixin):
+
+class MFEst(LDATrafoMixin, BaseEstimator):
     def __init__(self, *, loss="bpr", **kwargs):
         super().__init__(model_class=MFNet, loss=loss, **kwargs)
 
 
-class SNMFEst(BaseEstimator, LDATrafoMixin):
+class SNMFEst(LDATrafoMixin, BaseEstimator):
     def __init__(self, *, loss="bpr", **kwargs):
         super().__init__(model_class=SNMFNet, loss=loss, **kwargs)

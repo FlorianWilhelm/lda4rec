@@ -457,8 +457,11 @@ class Interactions(object):
         mat = self.to_csr()
         for user_id in user_ids:
             n_removals = len(mat[user_id].indices) - n
-            item_ids = rng.choice(mat[user_id].indices, size=n_removals, replace=False)
-            mat[user_id, item_ids] = 0
+            if n_removals > 0:
+                item_ids = rng.choice(
+                    mat[user_id].indices, size=n_removals, replace=False
+                )
+                mat[user_id, item_ids] = 0
 
         mat.eliminate_zeros()
         mat = mat.tocoo()
