@@ -8,7 +8,7 @@ import logging
 from abc import ABCMeta, abstractmethod
 from typing import Optional
 
-import neptune
+import neptune.new as neptune
 import numpy as np
 import pandas as pd
 import pyro
@@ -170,6 +170,7 @@ class LDA4RecEst(EstimatorMixin):
         self.user_pop_devs = params[lda.Param.user_pop_devs_loc].detach()
 
     def fit(self, interactions):
+        run = neptune.get_last_run()
         self._n_users = interactions.n_users
         self._n_items = interactions.n_items
         interactions = torch.tensor(interactions.to_ratings_per_user(), dtype=torch.int)
@@ -194,7 +195,7 @@ class LDA4RecEst(EstimatorMixin):
 
         for epoch_num in range(self._n_iter):
             epoch_loss = svi.step(**model_params)
-            neptune.log_metric("loss", epoch_loss)
+            run["train/loss"].log(epoch_loss)
             if epoch_num % self._log_steps == 0:
                 _logger.info("Epoch {: >5d}: loss {}".format(epoch_num, epoch_loss))
 
@@ -295,6 +296,7 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
 
     def fit(self, interactions: Interactions):
         """Fit the model"""
+        run = neptune.get_last_run()
         self._initialize(interactions)
         self._model.train(True)
 
@@ -332,7 +334,7 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
 
             epoch_loss /= minibatch_num + 1
 
-            neptune.log_metric("loss", epoch_loss)
+            run["train/loss"].log(epoch_loss)
             _logger.info("Epoch {: >5d}: loss {}".format(epoch_num, epoch_loss))
 
             if np.isnan(epoch_loss) or epoch_loss == 0.0:

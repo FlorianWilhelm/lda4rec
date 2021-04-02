@@ -4,16 +4,18 @@ from itertools import product
 from pathlib import Path
 
 import click
-import neptune
+import neptune.new as neptune
 import numpy as np
 import yaml
-from neptune.utils import get_git_info
-from neptunecontrib.api.table import log_table
+from neptune.new.types import File
 
 from . import __version__, estimators
 from .datasets import ALL_DATASETS, get_dataset, random_train_test_split
 from .evaluations import summary
-from .utils import Config, flatten_dict, log_dataset, log_summary
+from .utils import Config, log_dataset, log_summary
+
+# from neptunecontrib.api.table import log_table
+
 
 _logger = logging.getLogger(__name__)
 
@@ -39,15 +41,9 @@ def main(ctx, cfg_path: Path, silent: bool):
 
 def init_neptune(cfg):
     neptune_cfg = cfg["neptune"]
-    init_cfg = neptune_cfg["init"]
-    exp_cfg = neptune_cfg["create_experiment"]
-    # needs to be determined explicitly because of `console_scripts`
-    git_info = get_git_info(str(Path(__file__).resolve()))
-
-    neptune.init(**init_cfg)
-    params = flatten_dict(cfg["experiment"])
-    params["exp_name"] = cfg["main"]["name"]
-    neptune.create_experiment(git_info=git_info, params=params, **exp_cfg)
+    run = neptune.init(name=cfg["main"]["name"], **neptune_cfg)
+    run["experiment"] = cfg["experiment"]
+    return run
 
 
 def setup_logging(cfg):
@@ -72,7 +68,7 @@ def setup_logging(cfg):
 @click.pass_obj
 def run_experiment(cfg: Config):
     """Run the experiment from the config"""
-    init_neptune(cfg)
+    run = init_neptune(cfg)
     setup_logging(cfg)
     exp_cfg = cfg["experiment"]
 
@@ -97,7 +93,7 @@ def run_experiment(cfg: Config):
     df = summary(est, train=train, valid=valid, test=test, rng=data_rng)
 
     log_summary(df.reset_index())
-    log_table("summary", df)
+    run["summary/df"].upload(File.as_html(df))
     _logger.info(f"Result:\n{df.reset_index()}")
 
 

@@ -24,8 +24,7 @@ dependencies:
      - -e .  # install git checkout of lda4rec in editable mode
      - icecream
      - pyro-ppl
-     - neptune-client
-     - neptune-contrib
+     - neptune-client>=0.9
      - daft  # only for plotting the graphical models
   # DEVELOPMENT ONLY PACKAGES (could also be kept in a separate environment file)
   - jupyterlab

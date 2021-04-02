@@ -7,18 +7,16 @@ Note: Many functions copied over from Spotlight (MIT)
 import logging
 import os.path
 from collections import UserDict
-from collections.abc import MutableMapping
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
 
-import neptune
+import neptune.new as neptune
 import numpy as np
 import pandas as pd
 import pyro
 import torch
 import yaml
-from neptune import OfflineBackend
 
 from .datasets import Interactions
 
@@ -144,13 +142,11 @@ class Config(UserDict):
         cfg["main"].update(kwargs)
         self._resolve_paths(cfg, path.parent)
 
-        sec_cfg = cfg["neptune"]["init"]
+        sec_cfg = cfg["neptune"]
         if sec_cfg["api_token"].upper() != "ANONYMOUS":
             # read token file and replace it in config
             with open(Path(sec_cfg["api_token"]).expanduser()) as fh:
                 sec_cfg["api_token"] = fh.readline().strip()
-        if not cfg["neptune"]["activate"]:
-            sec_cfg["backend"] = OfflineBackend()
 
         self.data.update(cfg)  # set cfg as own dictionary
 
@@ -163,41 +159,24 @@ class Config(UserDict):
                 cfg[k] = relpath_to_abspath(Path(v).expanduser(), anchor_path)
 
 
-class DuplicateKeyError(ValueError):
-    pass
-
-
-def flatten_dict(d, flat_dict=None):
-    """Flattens the dict by keeping only the most nested keys & raises if ambiguous"""
-    if flat_dict is None:
-        flat_dict = {}
-
-    for k, v in d.items():
-        if isinstance(v, MutableMapping):
-            flatten_dict(v, flat_dict)
-        elif k in flat_dict:
-            raise DuplicateKeyError(f"Duplicate key: {k}")
-        else:
-            flat_dict[k] = v
-    return flat_dict
-
-
 def log_summary(df: pd.DataFrame):
+    run = neptune.get_last_run()
     for _, row in df.iterrows():
         metric = row.pop("metric")
         for name, value in row.items():
-            neptune.log_metric(f"{metric}_{name}", value)
+            run[f"summary/{metric}_{name}"].log(value)
 
 
 def log_dataset(name, interactions: Interactions):
-    neptune.set_property(f"{name}_hash", interactions.hash())
+    run = neptune.get_last_run()
+    run[f"data/{name}/hash"] = interactions.hash()
     # we count the actual unique entities in the dataset!
     for prop_name, prop_val in [
         ("n_users", len(np.unique(interactions.user_ids))),
         ("n_items", len(np.unique(interactions.item_ids))),
         ("n_interactions", len(interactions)),
     ]:
-        neptune.set_property(f"{name}_{prop_name}", prop_val)
+        run[f"data/{name}/{prop_name}"] = prop_val
 
 
 def cmp_ranks(orig_scores, alt_scores, eps=1e-4):

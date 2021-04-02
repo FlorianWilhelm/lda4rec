@@ -5,14 +5,11 @@ main:
     log_level: INFO # log_level for log files
 
 neptune:
-    activate: true  # set to false to completely deactivate Neptune
-    init:
-        project_qualified_name: florian.wilhelm/lda4rec  # `shared/onboarding` if no account
-        api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
-    create_experiment:
-        name: lda4rec-v1
-        tags: ["movielens-1m", "exp_run1"]
-        description: "Experiment run on GCP"
+    project: florian.wilhelm/new-api  # `shared/onboarding` if no account
+    api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
+    tags: ["movielens-1m", "exp_run1"]
+    description: "Experiment run on GCP"
+    mode: "async" # or "offline", "sync", "debug"
 
 experiment:
     dataset: movielens-1m
@@ -20,9 +17,9 @@ experiment:
     interaction_pivot: 4
     model_seed: 123
     max_user_interactions: 200
-    estimator: LDA4RecEst
+    estimator: MFEst
     est_params:
         embedding_dim: 4
-        n_iter: 1000
+        n_iter: 10
         batch_size: 128
         learning_rate: 0.01
