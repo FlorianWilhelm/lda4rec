@@ -8,14 +8,12 @@ import neptune.new as neptune
 import numpy as np
 import yaml
 from neptune.new.types import File
+from neptune.utils import get_git_info
 
 from . import __version__, estimators
 from .datasets import ALL_DATASETS, get_dataset, random_train_test_split
 from .evaluations import summary
 from .utils import Config, log_dataset, log_summary
-
-# from neptunecontrib.api.table import log_table
-
 
 _logger = logging.getLogger(__name__)
 
@@ -41,8 +39,15 @@ def main(ctx, cfg_path: Path, silent: bool):
 
 def init_neptune(cfg):
     neptune_cfg = cfg["neptune"]
-    run = neptune.init(name=cfg["main"]["name"], **neptune_cfg)
+    run = neptune.init(
+        name=cfg["main"]["name"],
+        **neptune_cfg,
+    )
     run["experiment"] = cfg["experiment"]
+    # ToDo: Change this when neptune.new allows passing it in init
+    git_info = vars(get_git_info(str(Path(__file__).resolve())))
+    git_info["commit_date"] = str(git_info["commit_date"])
+    run["git_info"] = git_info
     return run
 
 
