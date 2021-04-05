@@ -106,13 +106,12 @@ def run_experiment(cfg: Config):
 def experiments_gen(template):
     """Generate different experiment config setups"""
 
-    def make_configs(exp_cfg, param_names, model_params_iter):
+    def make_configs(template, param_names, model_params_iter):
         for params in model_params_iter:
-            template["experiment"] = exp_cfg
+            exp_temp = deepcopy(template)
             for name, param in zip(param_names, params):
-                params_cfg = exp_cfg["est_params"]
-                params_cfg[name] = param
-            yield template
+                exp_temp["experiment"]["est_params"][name] = param
+            yield exp_temp
 
     estimators = ["MFEst", "PopEst", "SNMFEst", "NMFEst"]
     datasets = ["goodbooks", "amazon", "movielens-1m"]
@@ -123,7 +122,8 @@ def experiments_gen(template):
     batch_sizes = [32, 64, 128, 256, 512]
 
     for estimator, model_seed, dataset in product(estimators, model_seeds, datasets):
-        exp_cfg = deepcopy(template["experiment"])
+        exp_temp = deepcopy(template)
+        exp_cfg = exp_temp["experiment"]
         exp_cfg.update(
             {
                 "dataset": dataset,
@@ -133,8 +133,8 @@ def experiments_gen(template):
         )
         if estimator == "PopEst":
             exp_cfg["est_params"] = {}
-            template["experiment"] = exp_cfg
-            yield template
+            exp_temp["experiment"] = exp_cfg
+            yield exp_temp
         elif estimator == "LDA4RecEst":
             params = {
                 "embedding_dim": embedding_dims,
@@ -143,14 +143,14 @@ def experiments_gen(template):
                 "n_iter": [3000, 6000, 10000],
                 "alpha": [None, 1.0],
             }
-            yield from make_configs(exp_cfg, params.keys(), product(*params.values()))
+            yield from make_configs(exp_temp, params.keys(), product(*params.values()))
         elif estimator in ("MFEst", "SNMFEst", "NMFEst"):
             params = {
                 "embedding_dim": embedding_dims,
                 "learning_rate": learning_rates,
                 "batch_size": batch_sizes,
             }
-            yield from make_configs(exp_cfg, params.keys(), product(*params.values()))
+            yield from make_configs(exp_temp, params.keys(), product(*params.values()))
         else:
             raise RuntimeError(f"Unknown estimator {estimator}!")
 
