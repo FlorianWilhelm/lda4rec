@@ -12,7 +12,7 @@ from neptune.new.types import File
 from neptune.utils import get_git_info
 
 from . import __version__, estimators
-from .datasets import ALL_DATASETS, get_dataset, random_train_test_split
+from .datasets import get_dataset, random_train_test_split
 from .evaluations import summary
 from .utils import Config, log_dataset, log_summary
 
@@ -103,7 +103,7 @@ def run_experiment(cfg: Config):
     _logger.info(f"Result:\n{df.reset_index()}")
 
 
-def experiments_gen(template, dataset):
+def experiments_gen(template):
     """Generate different experiment config setups"""
 
     def make_configs(exp_cfg, param_names, model_params_iter):
@@ -115,24 +115,24 @@ def experiments_gen(template, dataset):
             yield template
 
     estimators = ["MFEst", "PopEst", "SNMFEst", "NMFEst"]
+    datasets = ["goodbooks", "amazon", "movielens-1m"]
     model_seeds = [3128845410, 2764130162, 4203564202]
 
     embedding_dims = [4, 8, 16, 32]
     learning_rates = [0.01, 0.001]
     batch_sizes = [32, 64, 128, 256, 512]
-    n_iters_mf = [200]
 
-    for estimator, model_seed in product(estimators, model_seeds):
+    for estimator, model_seed, dataset in product(estimators, model_seeds, datasets):
         exp_cfg = deepcopy(template["experiment"])
         exp_cfg.update(
             {
                 "dataset": dataset,
                 "model_seed": model_seed,
                 "estimator": estimator,
-                "est_params": {},
             }
         )
         if estimator == "PopEst":
+            exp_cfg["est_params"] = {}
             template["experiment"] = exp_cfg
             yield template
         elif estimator == "LDA4RecEst":
@@ -149,7 +149,6 @@ def experiments_gen(template, dataset):
                 "embedding_dim": embedding_dims,
                 "learning_rate": learning_rates,
                 "batch_size": batch_sizes,
-                "n_iter": n_iters_mf,
             }
             yield from make_configs(exp_cfg, params.keys(), product(*params.values()))
         else:
@@ -157,25 +156,11 @@ def experiments_gen(template, dataset):
 
 
 @main.command(name="create")
-@click.option(
-    "-ds",
-    "--dataset",
-    "dataset",
-    default="movielens-100k",
-    type=str,
-    help="dataset to create experiment configs for",
-)
 @click.pass_obj
-def create_experiments(cfg: Config, dataset: str):
+def create_experiments(cfg: Config):
     """Create experiment configurations"""
-    dataset = dataset.lower()
     template = yaml.safe_load(cfg.yaml_content)
-    if dataset not in ALL_DATASETS:
-        options = ", ".join(ALL_DATASETS.keys())
-        msg = f"Unknown dataset: {dataset}. Choose one of: {options}"
-        raise ValueError(msg)
-
-    for idx, experiment in enumerate(experiments_gen(template, dataset=dataset)):
+    for idx, experiment in enumerate(experiments_gen(template)):
         with open(cfg.path.parent / Path(f"exp_{idx}.yaml"), "w") as fh:
             yaml.dump(experiment, fh)
 

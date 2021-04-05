@@ -5,9 +5,9 @@ main:
     log_level: INFO # log_level for log files
 
 neptune:
-    project: florian.wilhelm/lda4rec-movielens1m  # `shared/onboarding` if no account
+    project: florian.wilhelm/lda4rec-mf  # `shared/onboarding` if no account
     api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
-    tags: []
+    tags: ["exp-run1"]
     description: "Experiment run on GCP"
     mode: "async" # or "offline", "sync", "debug"
 
