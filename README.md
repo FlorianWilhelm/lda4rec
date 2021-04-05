@@ -34,6 +34,7 @@ using the Movielens-100k dataset. Check out `cli.py` for more details.
 
 Commands for setting up an Ubuntu 20.10 VM with at least 20 GiB of HD on e.g. a GCP c2-standard-30 instance:
 ```
+tmux
 sudo apt-get install -y build-essential
 curl https://sh.rustup.rs -sSf | sh
 source $HOME/.cargo/env
@@ -45,7 +46,6 @@ git clone https://github.com/FlorianWilhelm/lda4rec.git # and TOKEN as password 
 cd lda4rec
 conda env create -f environment.yml
 conda activate lda4rec
-pueued -d
 vim ~/.neptune_api_token # and copy it over
 ```
 Then create and run all experiments for full control over parallelism with [pueue]:
@@ -54,9 +54,9 @@ pueued -d # only once to start the daemon
 pueue parallel 10
 export OMP_NUM_THREADS=4  # to limit then number of threads per model
 lda4rec -c configs/default.yaml create -ds movielens-1m  # or any other dataset
-find ./configs -maxdepth 1 -name "*.yaml" -exec pueue add "lda4rec -c {} run" \; -exec sleep 10 \;
+find ./configs -maxdepth 1 -name "exp_*.yaml" -exec pueue add "lda4rec -c {} run" \; -exec sleep 30 \;
 ```
-Remark: `-exec sleep 10` avoids race condition when reading datasets if parallelism is too high.
+Remark: `-exec sleep 30` avoids race condition when reading datasets if parallelism is too high.
 
 
 ## Dependency Management & Reproducibility

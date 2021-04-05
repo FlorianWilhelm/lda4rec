@@ -21,7 +21,7 @@ from pyro.optim import ClippedAdam
 from . import lda
 from .datasets import Interactions
 from .losses import adaptive_hinge_loss, bpr_loss, hinge_loss, logistic_loss
-from .nets import MFNet, SNMFNet
+from .nets import MFNet, NMFNet, SNMFNet
 from .utils import cpu, gpu, minibatch, process_ids, sample_items, set_seed, shuffle
 
 _logger = logging.getLogger(__name__)
@@ -428,3 +428,8 @@ class MFEst(LDATrafoMixin, BaseEstimator):
 class SNMFEst(LDATrafoMixin, BaseEstimator):
     def __init__(self, *, loss="bpr", **kwargs):
         super().__init__(model_class=SNMFNet, loss=loss, **kwargs)
+
+
+class NMFEst(LDATrafoMixin, BaseEstimator):
+    def __init__(self, *, loss="bpr", **kwargs):
+        super().__init__(model_class=NMFNet, loss=loss, **kwargs)

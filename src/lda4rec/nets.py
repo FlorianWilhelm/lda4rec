@@ -213,3 +213,89 @@ class SNMFNet(nn.Module):
 
         dot = dot + user_bias + item_bias
         return dot
+
+
+class NMFNet(nn.Module):
+    """
+    Non-Negative factorization representation.
+    Encodes both users and items as an embedding layer; the score
+    for a user-item pair is given by the dot product of the item
+    and user latent vectors.
+
+    Args:
+        n_users (int): Number of users in the model.
+        n_items (int): Number of items in the model.
+        embedding_dim: int, optional
+            Dimensionality of the latent representations.
+        biases (bool):
+        user_embedding_layer: an embedding layer, optional
+            If supplied, will be used as the user embedding layer
+            of the network.
+        item_embedding_layer: an embedding layer, optional
+            If supplied, will be used as the item embedding layer
+            of the network.
+        sparse: boolean, optional
+            Use sparse gradients.
+    """
+
+    def __init__(
+        self,
+        n_users,
+        n_items,
+        *,
+        embedding_dim=32,
+        user_embedding_layer=None,
+        item_embedding_layer=None,
+        sparse=False
+    ):
+        super().__init__()
+
+        self.n_users = n_users
+        self.n_items = n_items
+        self.embedding_dim = embedding_dim
+
+        if user_embedding_layer is not None:
+            self.user_embeddings = user_embedding_layer
+        else:
+            self.user_embeddings = ScaledEmbedding(
+                n_users, embedding_dim, sparse=sparse
+            )
+
+        if item_embedding_layer is not None:
+            self.item_embeddings = item_embedding_layer
+        else:
+            self.item_embeddings = ScaledEmbedding(
+                n_items, embedding_dim, sparse=sparse
+            )
+
+        self.user_biases = ZeroEmbedding(n_users, 1, sparse=sparse)
+        self.item_biases = ZeroEmbedding(n_items, 1, sparse=sparse)
+
+    def forward(self, user_ids, item_ids):
+        """
+        Compute the forward pass of the representation.
+
+        Args:
+            user_ids (tensor): Tensor of user indices.
+        item_ids (tensor): Tensor of item indices.
+
+        Returns:
+            tensor: Tensor of predictions.
+        """
+
+        user_embedding = self.user_embeddings(user_ids)
+        item_embedding = self.item_embeddings(item_ids)
+
+        user_embedding = user_embedding.squeeze()
+        item_embedding = item_embedding.squeeze()
+
+        user_bias = self.user_biases(user_ids).squeeze()
+        item_bias = self.item_biases(item_ids).squeeze()
+
+        dot = torch.sigmoid(user_embedding) * torch.sigmoid(item_embedding)
+
+        if dot.dim() > 1:  # handles case where embedding_dim=1
+            dot = dot.sum(1)
+
+        dot = dot + user_bias + item_bias
+        return dot

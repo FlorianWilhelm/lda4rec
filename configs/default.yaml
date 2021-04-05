@@ -5,7 +5,7 @@ main:
     log_level: INFO # log_level for log files
 
 neptune:
-    project: florian.wilhelm/new-api  # `shared/onboarding` if no account
+    project: florian.wilhelm/lda4rec-movielens1m  # `shared/onboarding` if no account
     api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
     tags: ["movielens-1m", "exp_run1"]
     description: "Experiment run on GCP"
@@ -16,7 +16,7 @@ experiment:
     dataset_seed: 1729
     interaction_pivot: 4
     model_seed: 123
-    max_user_interactions: 200
+    max_user_interactions: -1
     estimator: MFEst
     est_params:
         embedding_dim: 4

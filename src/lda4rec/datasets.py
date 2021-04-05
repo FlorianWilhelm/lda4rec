@@ -450,6 +450,12 @@ class Interactions(object):
         self.select_by_mask_(mask)
 
     def max_user_interactions_(self, n: int, rng=None):
+        """Restrict number of interactions per user to n
+
+        Choose n < 0 for noop
+        """
+        if n < 0:
+            return
         rng = np.random.default_rng(rng)
         exceed = pd.Series(self.user_ids).value_counts()
         user_ids = exceed.loc[exceed - n > 0].index.to_numpy()

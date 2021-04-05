@@ -1,5 +1,6 @@
 import logging
 import sys
+from copy import deepcopy
 from itertools import product
 from pathlib import Path
 
@@ -113,29 +114,24 @@ def experiments_gen(template, dataset):
                 params_cfg[name] = param
             yield template
 
-    estimators = [
-        "LDA4RecEst",
-        "MFEst",
-        "PopEst",
-        "SNMFEst",
-    ]
-    model_seeds = [3128845410, 2764130162, 4203564202, 2330968889, 3865905591]
+    estimators = ["MFEst", "PopEst", "SNMFEst", "NMFEst"]
+    model_seeds = [3128845410, 2764130162, 4203564202]
 
     embedding_dims = [4, 8, 16, 32, 64]
-    learning_rates = [0.01]
+    learning_rates = [0.01, 0.001]
     batch_sizes = [32, 64, 128, 256, 512]
-    n_iters_bilinear = [25, 50, 100]
+    n_iters_mf = [200]
 
     for estimator, model_seed in product(estimators, model_seeds):
-        exp_cfg = {
-            "dataset": dataset,
-            "dataset_seed": 1729,  # keep this constant for reproducibility
-            "interaction_pivot": 0,
-            "model_seed": model_seed,
-            "max_user_interactions": 200,
-            "estimator": estimator,
-            "est_params": {},
-        }
+        exp_cfg = deepcopy(template["experiment"])
+        exp_cfg.update(
+            {
+                "dataset": dataset,
+                "model_seed": model_seed,
+                "estimator": estimator,
+                "est_params": {},
+            }
+        )
         if estimator == "PopEst":
             template["experiment"] = exp_cfg
             yield template
@@ -148,20 +144,12 @@ def experiments_gen(template, dataset):
                 "alpha": [None, 1.0],
             }
             yield from make_configs(exp_cfg, params.keys(), product(*params.values()))
-        elif estimator == "MFEst":
+        elif estimator in ("MFEst", "SNMFEst", "NMFEst"):
             params = {
                 "embedding_dim": embedding_dims,
                 "learning_rate": learning_rates,
                 "batch_size": batch_sizes,
-                "n_iter": n_iters_bilinear,
-            }
-            yield from make_configs(exp_cfg, params.keys(), product(*params.values()))
-        elif estimator == "SNMFEst":
-            params = {
-                "embedding_dim": embedding_dims,
-                "learning_rate": learning_rates,
-                "batch_size": batch_sizes,
-                "n_iter": n_iters_bilinear,
+                "n_iter": n_iters_mf,
             }
             yield from make_configs(exp_cfg, params.keys(), product(*params.values()))
         else:
