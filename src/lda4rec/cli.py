@@ -117,7 +117,7 @@ def experiments_gen(template, dataset):
     estimators = ["MFEst", "PopEst", "SNMFEst", "NMFEst"]
     model_seeds = [3128845410, 2764130162, 4203564202]
 
-    embedding_dims = [4, 8, 16, 32, 64]
+    embedding_dims = [4, 8, 16, 32]
     learning_rates = [0.01, 0.001]
     batch_sizes = [32, 64, 128, 256, 512]
     n_iters_mf = [200]

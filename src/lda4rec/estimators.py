@@ -6,6 +6,7 @@ Note: Some code was taken from Spotlight (MIT)
 """
 import logging
 from abc import ABCMeta, abstractmethod
+from collections import deque
 from typing import Optional
 
 import neptune.new as neptune
@@ -255,6 +256,8 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
         use_cuda=False,
         rng=None,
         sparse=False,
+        deque_max_len=10,
+        conv_slope_max=-1e-4,
     ):
         self._model_class = model_class
         self._embedding_dim = embedding_dim
@@ -266,6 +269,8 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
         self._l2 = l2
         self._optimizer = optimizer
         self._sparse = sparse
+        self._conv_deque = deque(maxlen=deque_max_len)
+        self._conv_slope_max = conv_slope_max
         set_seed(self._rng.integers(0, 2 ** 32 - 1), cuda=self._use_cuda)
 
         self._loss = {
@@ -294,11 +299,20 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
         else:
             self._optimizer = self._optimizer(self._model.parameters())
 
+    def converged(self, loss):
+        self._conv_deque.append(loss)
+        if not len(self._conv_deque) == self._conv_deque.maxlen:
+            return False
+
+        diffs = np.diff(self._conv_deque)
+        return np.mean(diffs) >= self._conv_slope_max
+
     def fit(self, interactions: Interactions):
         """Fit the model"""
         run = neptune.get_last_run()
         self._initialize(interactions)
         self._model.train(True)
+        self._conv_deque.clear()
 
         epoch_loss = None
 
@@ -340,6 +354,11 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
             if np.isnan(epoch_loss) or epoch_loss == 0.0:
                 raise ValueError("Degenerate epoch loss: {}".format(epoch_loss))
 
+            if self.converged(epoch_loss):
+                _logger.info("Converged after {} epochs.".format(epoch_num))
+                break
+
+        run["train/n_epochs"].log(epoch_num)
         return epoch_loss
 
     # ToDo: Check if we cannot just do everything here in PyTorch
