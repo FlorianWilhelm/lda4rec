@@ -146,30 +146,27 @@ def auc_score(model, test, train=None, rng=None):
         if not len(row.indices):
             continue
 
-        # Make predictions for all items
         predictions = model.predict(user_id)
-
         pos_targets = row.indices
+
+        if pos_targets.size == 0:
+            continue
 
         if train is not None:
             skip_items = train[user_id].indices
             # remove all elements from pos_target which are already in skip_items
             pos_targets = pos_targets[np.in1d(pos_targets, skip_items, invert=True)]
 
-        n_preds = len(pos_targets)
-        neg_targets = np.setdiff1d(np.arange(len(predictions)), pos_targets)
-        neg_targets = rng.choice(neg_targets, size=n_preds, replace=False)
+        n_preds = pos_targets.size
+        neg_targets = np.setdiff1d(np.arange(predictions.size), pos_targets)
+        neg_targets = rng.choice(
+            neg_targets, size=n_preds, replace=n_preds >= neg_targets.size
+        )
 
-        # Obtain predictions for all positives
         pos_predictions = predictions[pos_targets]
-
-        # Obtain predictions for random set of unobserved that has the same length
-        # as the positives
         neg_predictions = predictions[neg_targets]
 
-        # Compare both ratings for ranking distortions, i.e. positive < negative
         user_auc_score = (pos_predictions > neg_predictions).sum() / n_preds
-
         auc_score.append(user_auc_score)
 
     return np.array(auc_score)
@@ -186,7 +183,7 @@ def rmse_score(model, test):
             Test interactions.
 
     Returns:
-        float: nThe RMSE score.
+        float: RMSE score.
     """
     predictions = model.predict(test.user_ids, test.item_ids)
     ratings = np.clip(test.ratings_batch, 0, 1)  # bring -1 to 0

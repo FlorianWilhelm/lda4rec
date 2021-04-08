@@ -85,9 +85,6 @@ def model(
     )  # ( | n_items)
 
     with pyro.plate(Plate.topics, n_topics):
-        # user_topics_weights = pyro.sample(
-        #     Site.user_topics_weights, dist.Gamma(alpha, 1.0)
-        # )  # (n_topics)
         # beta
         topic_items = pyro.sample(
             Site.topic_items,
@@ -103,7 +100,6 @@ def model(
 
         user_topics = pyro.sample(
             Site.user_topics,
-            # ToDo: More evaluations on Gamma Prior here
             dist.Dirichlet(alpha * torch.ones(n_topics)),  # prefer sparse
         )  # (n_users | n_topics)
 
@@ -230,9 +226,6 @@ def pred_model(
     )  # ( | n_items)
 
     with pyro.plate(Plate.topics, n_topics):
-        # user_topics_weights = pyro.sample(
-        #     Site.user_topics_weights, dist.Gamma(alpha, 1.0)
-        # )  # (n_topics)
         # beta
         topic_items = pyro.sample(
             Site.topic_items,
@@ -241,7 +234,6 @@ def pred_model(
 
     user_topics = pyro.sample(
         Site.user_topics,
-        # ToDo: More evaluations on Gamma Prior here
         dist.Dirichlet(alpha * torch.ones(n_topics)),  # prefer sparse
     )
 

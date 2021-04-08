@@ -95,7 +95,9 @@ def run_experiment(cfg: Config):
 
     est_class = getattr(estimators, exp_cfg["estimator"])
     est = est_class(**exp_cfg["est_params"], rng=model_rng)
+    _logger.info(f"Fitting estimator {exp_cfg['estimator']}...")
     est.fit(train)
+    _logger.info("Evaluating...")
     df = summary(est, train=train, valid=valid, test=test, rng=data_rng)
 
     log_summary(df.reset_index())
