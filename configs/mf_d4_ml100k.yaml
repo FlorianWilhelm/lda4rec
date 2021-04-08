@@ -16,10 +16,10 @@ experiment:
     dataset_seed: 1729
     interaction_pivot: 4
     model_seed: 123
-    max_user_interactions: -1
+    max_user_interactions: 200
     estimator: MFEst
     est_params:
         embedding_dim: 4
         n_iter: 100
         batch_size: 128
-        learning_rate: 0.01
+        learning_rate: 0.001
