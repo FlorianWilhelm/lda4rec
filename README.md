@@ -53,7 +53,7 @@ Then create and run all experiments for full control over parallelism with [pueu
 pueued -d # only once to start the daemon
 pueue parallel 10
 export OMP_NUM_THREADS=4  # to limit then number of threads per model
-lda4rec -c configs/default.yaml create -ds movielens-1m  # or any other dataset
+lda4rec -c configs/default.yaml create # to create the config files
 find ./configs -maxdepth 1 -name "exp_*.yaml" -exec pueue add "lda4rec -c {} run" \; -exec sleep 30 \;
 ```
 Remark: `-exec sleep 30` avoids race condition when reading datasets if parallelism is too high.
