@@ -80,16 +80,15 @@ def model(
     n_interactions = interactions.shape[0]
 
     # omega
-    item_pops = pyro.sample(
-        Site.item_pops, dist.Normal(torch.zeros(n_items), 2.0).to_event(1)
-    )  # ( | n_items)
+    item_pops = pyro.sample(  # ( | n_items)
+        Site.item_pops, dist.LogNormal(torch.zeros(n_items), 2.0).to_event(1)
+    ).unsqueeze(0)
 
     with pyro.plate(Plate.topics, n_topics):
-        # beta
-        topic_items = pyro.sample(
+        topic_items = pyro.sample(  # (n_topics | n_items)
             Site.topic_items,
-            dist.Normal(torch.zeros(1, n_items), 1.0).to_event(1),
-        )  # (n_topics | n_items)
+            dist.LogNormal(torch.zeros(1, n_items), 1.0).to_event(1),
+        )
 
     with pyro.plate(Plate.users, n_users) as ind:
         if interactions is not None:
@@ -98,22 +97,22 @@ def model(
                 assert interactions.max() < n_items
             interactions = interactions[:, ind]
 
-        user_topics = pyro.sample(
+        user_topics = pyro.sample(  # (n_users | n_topics)
             Site.user_topics,
             dist.Dirichlet(alpha * torch.ones(n_topics)),  # prefer sparse
-        )  # (n_users | n_topics)
+        )
 
-        user_pop_devs = pyro.sample(
+        user_pop_devs = pyro.sample(  # (n_users | )
             Site.user_pop_devs,
             dist.LogNormal(-0.5 * torch.ones(1), 0.5),
-        )  # (n_users | )
+        ).unsqueeze(1)
 
         with pyro.plate(Plate.interactions, n_interactions):
-            item_topics = pyro.sample(
+            item_topics = pyro.sample(  # (n_ratings_per_user | n_users)
                 Site.item_topics,
                 dist.Categorical(user_topics),
                 infer={"enumerate": "parallel"},
-            )  # (n_ratings_per_user | n_users)
+            )
             if interactions is not None:
                 mask = interactions != NA
                 interactions[~mask] = 0
@@ -121,17 +120,15 @@ def model(
                 mask = True
 
             with poutine.mask(mask=mask):
-                interactions = pyro.sample(
+                # final preference depends on the topic distribution,
+                # the item popularity and how much a user cares about
+                # item popularity
+                prefs = topic_items[item_topics] + user_pop_devs * item_pops
+                interactions = pyro.sample(  # (n_interactions, n_users)
                     Site.interactions,
-                    # final preference depends on the topic distribution,
-                    # the item popularity and how much a user cares about
-                    # item popularity
-                    dist.Categorical(
-                        logits=topic_items[item_topics]
-                        + user_pop_devs.unsqueeze(1) * item_pops.unsqueeze(0)
-                    ),
+                    dist.Categorical(prefs / prefs.sum()),
                     obs=interactions,
-                )  # (n_interactions, n_users)
+                )
 
     return ModelData(
         interactions=interactions,
@@ -158,7 +155,9 @@ def guide(
         lambda: torch.normal(mean=torch.ones(n_items), std=0.5).clamp(min=0.1),
         constraint=dist.constraints.positive,
     )
-    pyro.sample(Site.item_pops, dist.Normal(item_pops_loc, item_pops_scale).to_event(1))
+    pyro.sample(
+        Site.item_pops, dist.LogNormal(item_pops_loc, item_pops_scale).to_event(1)
+    )
 
     topic_items_loc = pyro.param(
         Param.topic_items_loc,
@@ -174,7 +173,7 @@ def guide(
     with pyro.plate(Plate.topics, n_topics):
         pyro.sample(
             Site.topic_items,
-            dist.Normal(topic_items_loc, topic_items_scale).to_event(1),
+            dist.LogNormal(topic_items_loc, topic_items_scale).to_event(1),
         )
 
     user_topics_logits = pyro.param(
@@ -221,42 +220,39 @@ def pred_model(
     alpha = 1.0 / n_topics if alpha is None else alpha
 
     # omega
-    item_pops = pyro.sample(
-        Site.item_pops, dist.Normal(torch.zeros(n_items), 2.0).to_event(1)
-    )  # ( | n_items)
+    item_pops = pyro.sample(  # ( | n_items)
+        Site.item_pops, dist.LogNormal(torch.zeros(n_items), 2.0).to_event(1)
+    ).unsqueeze(0)
 
     with pyro.plate(Plate.topics, n_topics):
-        # beta
-        topic_items = pyro.sample(
+        topic_items = pyro.sample(  # (n_topics | n_items)
             Site.topic_items,
-            dist.Normal(torch.zeros(1, n_items), 1.0).to_event(1),
-        )  # (n_topics | n_items)
+            dist.LogNormal(torch.zeros(1, n_items), 1.0).to_event(1),
+        )
 
-    user_topics = pyro.sample(
+    user_topics = pyro.sample(  # (n_users | n_topics)
         Site.user_topics,
         dist.Dirichlet(alpha * torch.ones(n_topics)),  # prefer sparse
     )
 
-    user_pop_devs = pyro.sample(
+    user_pop_devs = pyro.sample(  # (n_users | )
         Site.user_pop_devs,
         dist.LogNormal(-0.5 * torch.ones(1), 0.5),
-    )
+    ).unsqueeze(1)
 
-    item_topics = pyro.sample(
+    item_topics = pyro.sample(  # (n_ratings_per_user | n_users)
         Site.item_topics,
         dist.Categorical(user_topics),
         infer={"enumerate": "parallel"},
-    )  # (n_ratings_per_user | n_users)
+    )
 
-    interactions = pyro.sample(
+    # final preference depends on the topic distribution,
+    # the item popularity and how much a user cares about
+    # item popularity
+    prefs = topic_items[item_topics] + user_pop_devs * item_pops
+    interactions = pyro.sample(  # (n_interactions, n_users)
         Site.interactions,
-        # final preference depends on the topic distribution,
-        # the item popularity and how much a user cares about
-        # item popularity
-        dist.Categorical(
-            logits=topic_items[item_topics]
-            + user_pop_devs.unsqueeze(1) * item_pops.unsqueeze(0)
-        ),
+        dist.Categorical(prefs / prefs.sum()),
     )
 
     return interactions
@@ -280,7 +276,9 @@ def pred_guide(
         lambda: torch.normal(mean=torch.ones(n_items), std=0.5).clamp(min=0.1),
         constraint=dist.constraints.positive,
     )
-    pyro.sample(Site.item_pops, dist.Normal(item_pops_loc, item_pops_scale).to_event(1))
+    pyro.sample(
+        Site.item_pops, dist.LogNormal(item_pops_loc, item_pops_scale).to_event(1)
+    )
 
     topic_items_loc = pyro.param(
         Param.topic_items_loc,
@@ -296,7 +294,7 @@ def pred_guide(
     with pyro.plate(Plate.topics, n_topics):
         pyro.sample(
             Site.topic_items,
-            dist.Normal(topic_items_loc, topic_items_scale).to_event(1),
+            dist.LogNormal(topic_items_loc, topic_items_scale).to_event(1),
         )
 
     user_topics_logits = pyro.param(
