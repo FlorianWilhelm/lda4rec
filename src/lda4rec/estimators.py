@@ -226,16 +226,6 @@ class LDA4RecEst(EstimatorMixin):
         # break ties by randomly adding values from [0, 1)
         counts = counts + torch.rand(counts.shape)
 
-        # user_topics = self.user_topics[user_ids]
-        # topic_items = self.topic_items[:, item_ids].T
-        # item_pops = self.pops[item_ids].unsqueeze(1)
-        # user_pop_devs = self.user_pop_devs[user_ids].unsqueeze(1)
-        # topic_prefs = topic_items + user_pop_devs * item_pops
-        #
-        # dot = user_topics * topic_prefs
-        # if dot.dim() > 1:  # handles case where embedding_dim=1
-        #     dot = dot.sum(1)
-
         return counts
 
 

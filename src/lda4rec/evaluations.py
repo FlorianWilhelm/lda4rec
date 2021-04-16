@@ -3,6 +3,7 @@
 Functions to evaluate a trained model
 
 Note: Some code was taken from Spotlight (MIT)
+ToDo: Replace this with https://github.com/microsoft/rankerEval
 """
 
 import numpy as np
@@ -130,96 +131,29 @@ def precision_recall_score(model, test, train=None, k=10):
     return precision, recall
 
 
-def auc_score(model, test, train=None, rng=None):
-    """Calculate AUC Score"""
-    test = test.to_csr()
-
-    if train is not None:
-        train = train.to_csr()
-
-    rng = np.random.default_rng(rng)
-
-    auc_score = []
-
-    for user_id, row in enumerate(test):
-
-        if not len(row.indices):
-            continue
-
-        predictions = model.predict(user_id)
-        pos_targets = row.indices
-
-        if pos_targets.size == 0:
-            continue
-
-        if train is not None:
-            skip_items = train[user_id].indices
-            # remove all elements from pos_target which are already in skip_items
-            pos_targets = pos_targets[np.in1d(pos_targets, skip_items, invert=True)]
-
-        n_preds = pos_targets.size
-        neg_targets = np.setdiff1d(np.arange(predictions.size), pos_targets)
-        neg_targets = rng.choice(
-            neg_targets, size=n_preds, replace=n_preds >= neg_targets.size
-        )
-
-        pos_predictions = predictions[pos_targets]
-        neg_predictions = predictions[neg_targets]
-
-        user_auc_score = (pos_predictions > neg_predictions).sum() / n_preds
-        auc_score.append(user_auc_score)
-
-    return np.array(auc_score)
-
-
-def rmse_score(model, test):
-    """
-    Compute RMSE score for test interactions.
-
-    Args:
-        model: fitted instance of a recommender model
-            The model to evaluate.
-        test: :class:`spotlight.interactions.Interactions`
-            Test interactions.
-
-    Returns:
-        float: RMSE score.
-    """
-    predictions = model.predict(test.user_ids, test.item_ids)
-    ratings = np.clip(test.ratings_batch, 0, 1)  # bring -1 to 0
-
-    return np.sqrt(((ratings - predictions) ** 2).mean())
-
-
 def summary(
     est,
     *,
     train: np.ndarray,
     test: np.ndarray,
     valid: np.ndarray = None,
-    rng=None,
 ) -> pd.DataFrame:
     """Summarize all metrics in one DataFrame for train/valid/test"""
 
-    def eval(name, test, train=None, rng=None):
+    def eval(name, test, train=None):
         prec, recall = [
             vals.mean() for vals in precision_recall_score(est, test, train)
         ]
         mrr = mrr_score(est, test, train).mean()
-        auc = auc_score(est, test, train, rng).mean()
-        return pd.Series(
-            dict(prec=prec, recall=recall, mrr=mrr, auc=auc), name=name
-        ).to_frame()
-
-    rng = np.random.default_rng(rng)
+        return pd.Series(dict(prec=prec, recall=recall, mrr=mrr), name=name).to_frame()
 
     res_list = []
-    train_res = eval("train", train, rng=rng)
+    train_res = eval("train", train)
     res_list.append(train_res)
     if valid is not None:
-        valid_res = eval("valid", valid, train, rng=rng)
+        valid_res = eval("valid", valid, train)
         res_list.append(valid_res)
-    test_res = eval("test", test, train, rng=rng)
+    test_res = eval("test", test, train)
     res_list.append(test_res)
 
     res = pd.concat(res_list, axis=1)

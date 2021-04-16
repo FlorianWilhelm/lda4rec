@@ -94,15 +94,21 @@ def run_experiment(cfg: Config):
         _logger.info(f"{name}_hash: {data.hash()}")
 
     est_class = getattr(estimators, exp_cfg["estimator"])
-    est = est_class(**exp_cfg["est_params"], rng=model_rng)
-    _logger.info(f"Fitting estimator {exp_cfg['estimator']}...")
-    est.fit(train)
-    _logger.info("Evaluating...")
-    df = summary(est, train=train, valid=valid, test=test, rng=data_rng)
+    try:
+        est = est_class(**exp_cfg["est_params"], rng=model_rng)
+        _logger.info(f"Fitting estimator {exp_cfg['estimator']}...")
+        est.fit(train)
+        _logger.info("Evaluating...")
+        df = summary(est, train=train, valid=valid, test=test)
 
-    log_summary(df.reset_index())
-    run["summary/df"].upload(File.as_html(df))
-    _logger.info(f"Result:\n{df.reset_index()}")
+        log_summary(df.reset_index())
+        run["summary/df"].upload(File.as_html(df))
+        _logger.info(f"Result:\n{df.reset_index()}")
+    except Exception:
+        run["sys/tags"].add("failure")
+        raise
+    else:
+        run["sys/tags"].add("success")
 
 
 def experiments_gen(template):
@@ -115,8 +121,8 @@ def experiments_gen(template):
                 exp_temp["experiment"]["est_params"][name] = param
             yield exp_temp
 
-    estimators = ["MFEst", "PopEst", "SNMFEst", "NMFEst"]
-    datasets = ["goodbooks", "amazon", "movielens-1m"]
+    estimators = ["PopEst", "MFEst", "NMFEst", "SNMFEst"]
+    datasets = ["movielens-1m", "goodbooks"]
     model_seeds = [3128845410, 2764130162, 4203564202]
 
     embedding_dims = [4, 8, 16, 32]

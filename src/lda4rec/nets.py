@@ -2,7 +2,7 @@
 """
 Different model architectures
 
-Note: The BilinearNet class is more or less taken from Spotlight (MIT)
+Note: Some code taken from Spotlight (MIT)
 """
 import torch
 import torch.nn as nn
@@ -97,7 +97,6 @@ class MFNet(nn.Module):
                 n_items, embedding_dim, sparse=sparse
             )
 
-        self.user_biases = ZeroEmbedding(n_users, 1, sparse=sparse)
         self.item_biases = ZeroEmbedding(n_items, 1, sparse=sparse)
 
     def forward(self, user_ids, item_ids):
@@ -122,9 +121,8 @@ class MFNet(nn.Module):
         if dot.dim() > 1:  # handles case where embedding_dim=1
             dot = dot.sum(1)
 
-        user_bias = self.user_biases(user_ids).squeeze()
         item_bias = self.item_biases(item_ids).squeeze()
-        dot = dot + user_bias + item_bias
+        dot = dot + item_bias
 
         return dot
 
@@ -182,7 +180,6 @@ class SNMFNet(nn.Module):
                 n_items, embedding_dim, sparse=sparse
             )
 
-        self.user_biases = ZeroEmbedding(n_users, 1, sparse=sparse)
         self.item_biases = ZeroEmbedding(n_items, 1, sparse=sparse)
 
     def forward(self, user_ids, item_ids):
@@ -203,7 +200,6 @@ class SNMFNet(nn.Module):
         user_embedding = user_embedding.squeeze()
         item_embedding = item_embedding.squeeze()
 
-        user_bias = self.user_biases(user_ids).squeeze()
         item_bias = self.item_biases(item_ids).squeeze()
 
         dot = user_embedding * torch.sigmoid(item_embedding)
@@ -211,7 +207,7 @@ class SNMFNet(nn.Module):
         if dot.dim() > 1:  # handles case where embedding_dim=1
             dot = dot.sum(1)
 
-        dot = dot + user_bias + item_bias
+        dot = dot + item_bias
         return dot
 
 
@@ -268,7 +264,6 @@ class NMFNet(nn.Module):
                 n_items, embedding_dim, sparse=sparse
             )
 
-        self.user_biases = ZeroEmbedding(n_users, 1, sparse=sparse)
         self.item_biases = ZeroEmbedding(n_items, 1, sparse=sparse)
 
     def forward(self, user_ids, item_ids):
@@ -289,7 +284,6 @@ class NMFNet(nn.Module):
         user_embedding = user_embedding.squeeze()
         item_embedding = item_embedding.squeeze()
 
-        user_bias = self.user_biases(user_ids).squeeze()
         item_bias = self.item_biases(item_ids).squeeze()
 
         dot = torch.sigmoid(user_embedding) * torch.sigmoid(item_embedding)
@@ -297,5 +291,5 @@ class NMFNet(nn.Module):
         if dot.dim() > 1:  # handles case where embedding_dim=1
             dot = dot.sum(1)
 
-        dot = dot + user_bias + item_bias
+        dot = dot + torch.sigmoid(item_bias)
         return dot
