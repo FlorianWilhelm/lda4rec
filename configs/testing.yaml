@@ -7,7 +7,7 @@ main:
 neptune:
     project: florian.wilhelm/new-api  # `shared/onboarding` if no account
     api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
-    tags: []
+    tags: ["testing"]
     description: "Experiment run on GCP"
     mode: "async" # or "offline", "sync", "debug"
 
@@ -20,6 +20,6 @@ experiment:
     estimator: LDA4RecEst
     est_params:
         embedding_dim: 4
-        n_iter: 10000
+        n_iter: 1000
         batch_size: 128
-        learning_rate: 0.001
+        learning_rate: 0.01

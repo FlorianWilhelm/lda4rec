@@ -5,17 +5,17 @@ main:
     log_level: INFO # log_level for log files
 
 neptune:
-    project: florian.wilhelm/lda4rec-lda  # `shared/onboarding` if no account
+    project: florian.wilhelm/lda4rec-exp  # `shared/onboarding` if no account
     api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
-    tags: ["exp-run1"]
+    tags: ["lda-cmp"]
     description: "Experiment run on GCP"
     mode: "async" # or "offline", "sync", "debug"
 
 experiment:
     dataset: movielens-100k
     dataset_seed: 1729
-    interaction_pivot: 4
-    model_seed: 123
+    interaction_pivot: 0
+    model_seed: 3128845410
     max_user_interactions: 200
     estimator: LDA4RecEst
     est_params:

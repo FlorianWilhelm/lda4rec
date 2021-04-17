@@ -77,16 +77,15 @@ def run_experiment(cfg: Config):
     run = init_neptune(cfg)
     setup_logging(cfg)
     exp_cfg = cfg["experiment"]
-
-    dataset = get_dataset(exp_cfg["dataset"], data_dir=cfg["main"]["data_path"])
-    dataset.implicit_(exp_cfg["interaction_pivot"])  # implicit feedback
-
     model_rng = np.random.default_rng(exp_cfg["model_seed"])
     data_rng = np.random.default_rng(exp_cfg["dataset_seed"])
 
+    dataset = get_dataset(exp_cfg["dataset"], data_dir=cfg["main"]["data_path"])
+    dataset.implicit_(exp_cfg["interaction_pivot"])  # implicit feedback
+    dataset.max_user_interactions_(exp_cfg["max_user_interactions"], rng=data_rng)
+
     train, rest = random_train_test_split(dataset, test_percentage=0.10, rng=data_rng)
     test, valid = random_train_test_split(rest, test_percentage=0.5, rng=data_rng)
-    train.max_user_interactions_(exp_cfg["max_user_interactions"], rng=data_rng)
 
     for name, data in [("train", train), ("valid", valid), ("test", test)]:
         log_dataset(name, data)

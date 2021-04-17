@@ -81,13 +81,13 @@ def model(
 
     # omega
     item_pops = pyro.sample(  # ( | n_items)
-        Site.item_pops, dist.LogNormal(torch.zeros(n_items), 2.0).to_event(1)
+        Site.item_pops, dist.Normal(torch.zeros(n_items), 2.0).to_event(1)
     ).unsqueeze(0)
 
     with pyro.plate(Plate.topics, n_topics):
         topic_items = pyro.sample(  # (n_topics | n_items)
             Site.topic_items,
-            dist.LogNormal(torch.zeros(1, n_items), 1.0).to_event(1),
+            dist.Normal(torch.zeros(1, n_items), 1.0).to_event(1),
         )
 
     with pyro.plate(Plate.users, n_users) as ind:
@@ -126,7 +126,7 @@ def model(
                 prefs = topic_items[item_topics] + user_pop_devs * item_pops
                 interactions = pyro.sample(  # (n_interactions, n_users)
                     Site.interactions,
-                    dist.Categorical(prefs / prefs.sum()),
+                    dist.Categorical(logits=prefs),
                     obs=interactions,
                 )
 
@@ -155,9 +155,7 @@ def guide(
         lambda: torch.normal(mean=torch.ones(n_items), std=0.5).clamp(min=0.1),
         constraint=dist.constraints.positive,
     )
-    pyro.sample(
-        Site.item_pops, dist.LogNormal(item_pops_loc, item_pops_scale).to_event(1)
-    )
+    pyro.sample(Site.item_pops, dist.Normal(item_pops_loc, item_pops_scale).to_event(1))
 
     topic_items_loc = pyro.param(
         Param.topic_items_loc,
@@ -173,7 +171,7 @@ def guide(
     with pyro.plate(Plate.topics, n_topics):
         pyro.sample(
             Site.topic_items,
-            dist.LogNormal(topic_items_loc, topic_items_scale).to_event(1),
+            dist.Normal(topic_items_loc, topic_items_scale).to_event(1),
         )
 
     user_topics_logits = pyro.param(
@@ -221,13 +219,13 @@ def pred_model(
 
     # omega
     item_pops = pyro.sample(  # ( | n_items)
-        Site.item_pops, dist.LogNormal(torch.zeros(n_items), 2.0).to_event(1)
+        Site.item_pops, dist.Normal(torch.zeros(n_items), 2.0).to_event(1)
     ).unsqueeze(0)
 
     with pyro.plate(Plate.topics, n_topics):
         topic_items = pyro.sample(  # (n_topics | n_items)
             Site.topic_items,
-            dist.LogNormal(torch.zeros(1, n_items), 1.0).to_event(1),
+            dist.Normal(torch.zeros(1, n_items), 1.0).to_event(1),
         )
 
     user_topics = pyro.sample(  # (n_users | n_topics)
@@ -252,7 +250,7 @@ def pred_model(
     prefs = topic_items[item_topics] + user_pop_devs * item_pops
     interactions = pyro.sample(  # (n_interactions, n_users)
         Site.interactions,
-        dist.Categorical(prefs / prefs.sum()),
+        dist.Categorical(logits=prefs),
     )
 
     return interactions
@@ -276,9 +274,7 @@ def pred_guide(
         lambda: torch.normal(mean=torch.ones(n_items), std=0.5).clamp(min=0.1),
         constraint=dist.constraints.positive,
     )
-    pyro.sample(
-        Site.item_pops, dist.LogNormal(item_pops_loc, item_pops_scale).to_event(1)
-    )
+    pyro.sample(Site.item_pops, dist.Normal(item_pops_loc, item_pops_scale).to_event(1))
 
     topic_items_loc = pyro.param(
         Param.topic_items_loc,
@@ -294,7 +290,7 @@ def pred_guide(
     with pyro.plate(Plate.topics, n_topics):
         pyro.sample(
             Site.topic_items,
-            dist.LogNormal(topic_items_loc, topic_items_scale).to_event(1),
+            dist.Normal(topic_items_loc, topic_items_scale).to_event(1),
         )
 
     user_topics_logits = pyro.param(
