@@ -14,9 +14,9 @@ neptune:
 experiment:
     dataset: movielens-100k
     dataset_seed: 1729
-    interaction_pivot: 4
+    interaction_pivot: 0
     model_seed: 123
-    max_user_interactions: -1
+    max_user_interactions: 200
     estimator: MFEst
     est_params:
         embedding_dim: 4
