@@ -372,7 +372,7 @@ class LDATrafoMixin(metaclass=ABCMeta):
     def get_nmf(self, user_id):
         """Get NMF representation for a single user_id"""
         user_id, item_ids = process_ids(
-            user_id, None, self._n_items, self._use_cuda, cartesian=False
+            user_id.numpy(), None, self._n_items, self._use_cuda, cartesian=False
         )
         w = self._model.user_embeddings(user_id[0]).detach().unsqueeze(0)
         b = self._model.item_biases(item_ids).squeeze().detach()
@@ -418,14 +418,14 @@ class LDATrafoMixin(metaclass=ABCMeta):
         assert torch.all(probs >= 0.0)
         assert (probs.sum() - 1.0).abs() <= eps
 
-        return probs.numpy()
+        return probs
 
     def _predict(self, user_ids, item_ids):
         if self.lda_trafo:
             assert len(torch.unique(user_ids)) == 1, "invalid usage"
             return self.get_item_probs(user_ids[0], eps=1e-4)
         else:
-            # dispatch to BaseEstimator, if gods of the MRO have mercy on me
+            # dispatch to BaseEstimator, if the gods of MRO have mercy on me
             return super()._predict(user_ids, item_ids)
 
 
