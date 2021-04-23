@@ -209,4 +209,3 @@ dependencies:
     - typing-extensions==3.7.4.3
     - webcolors==1.11.1
     - websocket-client==0.58.0
-prefix: /home/fwilhelm/miniconda3/envs/lda4rec

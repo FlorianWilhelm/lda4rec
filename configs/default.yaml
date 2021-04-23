@@ -5,7 +5,7 @@ main:
     log_level: INFO # log_level for log files
 
 neptune:
-    project: florian.wilhelm/lda4rec-exp  # `shared/onboarding` if no account
+    project: neptune.user/lda4rec-exp  # `shared/onboarding` if no account
     api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
     tags: []
     description: "Experiment run on GCP"
