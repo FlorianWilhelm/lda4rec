@@ -129,6 +129,7 @@ class LDA4RecEst(EstimatorMixin):
         use_jit: bool = True,
         use_cuda: bool = False,
         rng=None,
+        predict_posterior=False,
         clear_param_store: bool = True,
         log_steps=100,
         model=None,
@@ -159,6 +160,7 @@ class LDA4RecEst(EstimatorMixin):
         self._n_users = None
         self._n_items = None
         self._model_params = None
+        self._predict_posterior = predict_posterior
 
     def _initialize(self, model_params):
         self._model_params = model_params
@@ -205,7 +207,7 @@ class LDA4RecEst(EstimatorMixin):
 
         return epoch_loss
 
-    def _predict(self, user_ids, item_ids):
+    def _predict_bayes(self, user_ids):
         assert len(torch.unique(user_ids)) == 1, "invalid usage"
 
         user_id = user_ids[0]
@@ -227,6 +229,27 @@ class LDA4RecEst(EstimatorMixin):
         counts = counts + torch.rand(counts.shape)
 
         return counts
+
+    def _predict_point(self, user_ids, item_ids):
+        assert len(torch.unique(user_ids)) == 1, "invalid usage"
+
+        user_topics = self.user_topics[user_ids]
+        topic_items = self.topic_items[:, item_ids].T
+        item_pops = self.pops[item_ids].unsqueeze(1)
+        user_pop_devs = self.user_pop_devs[user_ids].unsqueeze(1)
+        topic_prefs = topic_items + torch.exp(user_pop_devs) * item_pops
+
+        dot = user_topics * topic_prefs
+        if dot.dim() > 1:  # handles case where embedding_dim=1
+            dot = dot.sum(1)
+
+        return dot
+
+    def _predict(self, user_ids, item_ids):
+        if self._predict_posterior:
+            return self._predict_bayes(user_ids)
+        else:
+            return self._predict_point(user_ids, item_ids)
 
 
 class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
