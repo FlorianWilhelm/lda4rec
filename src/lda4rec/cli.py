@@ -120,9 +120,9 @@ def experiments_gen(template):
                 exp_temp["experiment"]["est_params"][name] = param
             yield exp_temp
 
-    estimators = ["PopEst", "MFEst", "NMFEst", "SNMFEst"]
+    estimators = ["LDA4RecEst"]
     datasets = ["movielens-1m", "goodbooks"]
-    model_seeds = [3128845410, 2764130162, 4203564202]
+    model_seeds = [3128845410]
 
     embedding_dims = [4, 8, 16, 32, 48, 64]
     learning_rates = [0.001]
@@ -147,8 +147,7 @@ def experiments_gen(template):
                 "embedding_dim": embedding_dims,
                 "learning_rate": learning_rates,
                 "batch_size": batch_sizes,
-                "n_iter": [3000, 6000, 10000],
-                "alpha": [None, 1.0],
+                "n_iter": 10000,
             }
             yield from make_configs(exp_temp, params.keys(), product(*params.values()))
         elif estimator in ("MFEst", "SNMFEst", "NMFEst"):
