@@ -79,7 +79,6 @@ def model(
     alpha = 1.0 / n_topics if alpha is None else alpha
     n_interactions = interactions.shape[0]
 
-    # omega
     item_pops = pyro.sample(  # ( | n_items)
         Site.item_pops, dist.Normal(torch.zeros(n_items), 2.0).to_event(1)
     ).unsqueeze(0)

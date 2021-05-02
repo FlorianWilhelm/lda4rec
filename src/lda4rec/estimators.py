@@ -385,6 +385,7 @@ class LDATrafoMixin(metaclass=ABCMeta):
         w = torch.cat([w_pos, w_neg], dim=1)
         h = torch.cat([h, -h], dim=1)
 
+        # choose the minimal offset to guarantee non-negativity, not just max of abs.
         h += torch.minimum(torch.min(h, dim=0).values, torch.zeros(h.shape[1])).abs()
         b += torch.minimum(torch.min(b), torch.zeros(1)).abs()
 

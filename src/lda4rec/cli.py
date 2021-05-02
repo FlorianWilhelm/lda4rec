@@ -124,7 +124,7 @@ def experiments_gen(template):
     datasets = ["movielens-1m", "goodbooks"]
     model_seeds = [3128845410, 2764130162, 4203564202]
 
-    embedding_dims = [4, 8, 16, 32]
+    embedding_dims = [4, 8, 16, 32, 48, 64]
     learning_rates = [0.001]
     batch_sizes = [64, 128]
 
