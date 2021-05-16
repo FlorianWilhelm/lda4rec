@@ -1,3 +1,3 @@
 # Contributors
 
-* [ANONYMOUS](https://github.com/ANONYMOUS)
+* [Florian Wilhelm](https://github.com/FlorianWilhelm)

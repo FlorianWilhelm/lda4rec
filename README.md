@@ -42,7 +42,7 @@ cargo install pueue
 curl https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O
 sh Miniconda3-latest-Linux-x86_64.sh
 source ~/.bashrc
-git clone https://github.com/ANONYMOUS/lda4rec.git # and TOKEN as password !!!
+git clone https://github.com/FlorianWilhelm/lda4rec.git
 cd lda4rec
 conda env create -f environment.yml
 conda activate lda4rec
@@ -105,6 +105,8 @@ Remark: `-exec sleep 30` avoids race condition when reading datasets if parallel
 ## Note
 
 This project has been set up using [PyScaffold] 4.0 and the [dsproject extension] 0.6.
+Some code was taken from [Spotlight] (MIT-licensed) by Maciej Kula as well as [lrann] (MIT-Licensed) by
+Florian Wilhelm and Marcel Kurovski.
 
 [PyScaffold]: https://pyscaffold.org/
 [conda]: https://docs.conda.io/
@@ -115,3 +117,5 @@ This project has been set up using [PyScaffold] 4.0 and the [dsproject extension
 [dsproject extension]: https://github.com/pyscaffold/pyscaffoldext-dsproject
 [pueue]: https://github.com/Nukesor/pueue
 [neptune.ai]: https://neptune.ai/
+[Spotlight]: https://github.com/maciejkula/spotlight
+[lrann]: https://github.com/FlorianWilhelm/lrann
