@@ -2,6 +2,17 @@
 
 Matrix Factorization for collaborative filtering is just solving an adjoint Latent Dirichlet Allocation model after all.
 
+## Ideas & Next Steps
+
+* Examine the optimality between the opimization problem MF-BPR and LDA4Rec from a theoretical perspective.
+* Evaluate the hyperparameters more for LDA4Rec. So far no extensive evaluation was performed.
+  Maybe also replace LogNormal with Gamma.
+* Extend LDA4Rec by introducing a [Dirichlet Process](https://pyro.ai/examples/dirichlet_process_mixture.html) allowing
+  to only define maximum latent dimension, thus making the model easier to apply.
+* Evaluate the non-sampling approach for prediction further that is as fast as MF-BPR.
+  Initial implementation exists in `estimators.py`
+
+
 ## Installation
 
 In order to set up the necessary environment:
