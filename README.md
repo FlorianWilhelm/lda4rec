@@ -1,4 +1,4 @@
-# LDA4Rec
+# LDA4Rec Next Generation
 
 Matrix Factorization for collaborative filtering is just solving an adjoint Latent Dirichlet Allocation model after all.
 
