@@ -1,6 +1,6 @@
 # LDA4Rec
 
-Matrix Factorization for Collaborative Filtering is actually an Approximation to a Latent Dirichlet Allocation Problem
+Matrix Factorization for collaborative filtering is just solving an adjoint Latent Dirichlet Allocation model after all.
 
 ## Installation
 
@@ -17,7 +17,7 @@ In order to set up the necessary environment:
 3. (optionally) get a free [neptune.ai] account for experiment tracking and save the api token
    under `~/.neptune_api_token` (default).
 
-## Running experiments
+## Running Experiments
 
 First check out and adapt the default experiment config `configs/default.yaml` and run it with:
 ```
@@ -101,6 +101,31 @@ Remark: `-exec sleep 30` avoids race condition when reading datasets if parallel
 ```
 
 <!-- pyscaffold-notes -->
+
+## How to Cite
+
+Please cite LDA4Rec if it helps your research. You can use the following BibTeX entry:
+
+```
+@inproceedings{wilhelm2021lda4rec,
+author = {Wilhelm, Florian},
+title = {Matrix Factorization for Collaborative Filtering Is Just Solving an Adjoint Latent Dirichlet Allocation Model After All},
+year = {2021},
+% isbn = {9781450375832},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+% url = {https://doi.org/10.1145/3383313.3412240},
+% doi = {10.1145/3383313.3412240},
+booktitle = {Fifteenth ACM Conference on Recommender Systems},
+% pages = {13–22},
+% numpages = {10},
+keywords = {Conversational Recommendation, Critiquing},
+% location = {Virtual Event, Brazil},
+series = {RecSys '21}
+}
+```
+
+The preprint can be found [here](docs/lda4rec_fwilhelm_prepint.pdf).
 
 ## Note
 
