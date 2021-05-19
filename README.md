@@ -11,6 +11,7 @@ Matrix Factorization for collaborative filtering is just solving an adjoint Late
   to only define maximum latent dimension, thus making the model easier to apply.
 * Evaluate the non-sampling approach for prediction further that is as fast as MF-BPR.
   Initial implementation exists in `estimators.py`
+* Examine Coldstart for items and users
 
 
 ## Installation
