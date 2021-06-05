@@ -2,6 +2,9 @@
 
 Matrix Factorization for collaborative filtering is just solving an adjoint Latent Dirichlet Allocation model after all.
 
+> **_NOTE:_**  This sourcecode is AGPL-3-only licensed. If you require a more permissive licence, e.g. for
+> commercial reasons, contact me to obtain a licence for your business.
+
 ## Installation
 
 In order to set up the necessary environment:
