@@ -2,6 +2,10 @@
 
 Matrix Factorization for collaborative filtering is just solving an adjoint Latent Dirichlet Allocation model after all.
 
+> **_NOTE:_**  This sourcecode is AGPL-3-only licensed. If you require a more permissive licence, e.g. for
+> commercial reasons, contact me to obtain a licence for your business.
+
+
 ## Ideas & Next Steps
 
 * Examine the optimality between the opimization problem MF-BPR and LDA4Rec from a theoretical perspective.
@@ -11,6 +15,8 @@ Matrix Factorization for collaborative filtering is just solving an adjoint Late
   to only define maximum latent dimension, thus making the model easier to apply.
 * Evaluate the non-sampling approach for prediction further that is as fast as MF-BPR.
   Initial implementation exists in `estimators.py`
+* Do explicit interactions by converting them to inplicit, e.g. just sample a 5 star rating more often than 3 stars.
+* Use Vespa as knn and query tool.
 * Examine Coldstart for items and users
 
 
