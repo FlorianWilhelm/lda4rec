@@ -7,16 +7,20 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:export-ydpi="96"
+   inkscape:export-xdpi="96"
+   inkscape:export-filename="/Users/fwilhelm/Sources/lda4rec/docs/gfx/lda4rec_large.png"
    sodipodi:docname="lda4rec.svg"
-   width="210mm"
-   height="297mm"
-   viewBox="0 0 210 297"
+   width="640"
+   height="320"
+   viewBox="0 0 169.33333 84.666669"
    version="1.1"
    id="svg8"
    inkscape:version="1.0 (4035a4f, 2020-05-01)">
   <defs
      id="defs2" />
   <sodipodi:namedview
+     units="px"
      inkscape:guide-bbox="true"
      showguides="true"
      id="base"
@@ -25,9 +29,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="2.16"
-     inkscape:cx="378.5979"
-     inkscape:cy="492.81746"
+     inkscape:zoom="0.71"
+     inkscape:cx="183.31882"
+     inkscape:cy="131.65418"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      inkscape:document-rotation="0"
@@ -36,16 +40,7 @@
      inkscape:window-height="1174"
      inkscape:window-x="0"
      inkscape:window-y="25"
-     inkscape:window-maximized="0">
-    <sodipodi:guide
-       id="guide847"
-       orientation="0,-1"
-       position="118.57253,163.48342" />
-    <sodipodi:guide
-       id="guide849"
-       orientation="0,-1"
-       position="127.14699,147.31443" />
-  </sodipodi:namedview>
+     inkscape:window-maximized="0" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -54,7 +49,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -62,43 +57,47 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1">
-    <text
-       xml:space="preserve"
-       style="font-size:22.5778px;line-height:1.25;font-family:'Feast of Flesh BB';-inkscape-font-specification:'Feast of Flesh BB';fill:#44b1ae;fill-opacity:1;stroke-width:0.264583"
-       x="64.709526"
-       y="149.67856"
-       id="text839"><tspan
-         x="64.709526"
-         y="149.67856"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:23.9889px;font-family:Phosphate;-inkscape-font-specification:'Phosphate Bold';fill:#44b1ae;fill-opacity:1;stroke-width:0.264583"
-         sodipodi:role="line"
-         id="tspan841">LDA</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:16.93329999999999913px;line-height:0;font-family:'Feast of Flesh BB';-inkscape-font-specification:'Feast of Flesh BB';fill:#2584c1;fill-opacity:1;stroke-width:0.285777;"
-       x="114.91335"
-       y="144.58821"
-       id="text839-6-7"
-       transform="scale(0.96667027,1.0344789)"><tspan
-         x="114.91335"
-         y="144.58821"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.93329999999999913px;line-height:0.75;font-family:Monoid;-inkscape-font-specification:Monoid;letter-spacing:-1.32292000000000010px;word-spacing:-0.01587500000000000px;fill:#2584c1;fill-opacity:1;stroke-width:0.285777;"
-         sodipodi:role="line"
-         id="tspan841-5-0">Rec</tspan></text>
-    <text
-       id="text839-6"
-       y="149.60289"
-       x="103.56902"
-       style="font-size:22.5778px;line-height:1.25;font-family:'Feast of Flesh BB';-inkscape-font-specification:'Feast of Flesh BB';fill:#ac74d4;fill-opacity:1;stroke-width:0.264583"
-       xml:space="preserve"><tspan
-         id="tspan841-5"
-         sodipodi:role="line"
-         style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:22.5778px;font-family:'Hiragino Kaku Gothic Pro';-inkscape-font-specification:'Hiragino Kaku Gothic Pro Semi-Bold';fill:#ac74d4;fill-opacity:1;stroke-width:0.264583"
-         y="149.60289"
-         x="103.56902"><tspan
-           id="tspan849-6"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Arial Narrow';-inkscape-font-specification:'Arial Narrow';fill:#ac74d4;fill-opacity:1;stroke-width:0.264583">4</tspan><tspan
-           id="tspan845-2"
-           style="font-style:normal;font-variant:normal;font-weight:300;font-stretch:normal;font-size:19.7556px;font-family:'Hiragino Kaku Gothic Pro';-inkscape-font-specification:'Hiragino Kaku Gothic Pro Light';fill:#ac74d4;fill-opacity:1;stroke-width:0.264583" /></tspan></text>
+    <g
+       transform="translate(-0.34594851,1.3835801)"
+       id="g873">
+      <text
+         id="text839"
+         y="58.225372"
+         x="3.7569175"
+         style="font-size:48.2731px;line-height:1.25;font-family:'Feast of Flesh BB';-inkscape-font-specification:'Feast of Flesh BB';fill:#44b1ae;fill-opacity:1;stroke-width:0.565699"
+         xml:space="preserve"><tspan
+           id="tspan841"
+           sodipodi:role="line"
+           style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:51.2901px;font-family:Phosphate;-inkscape-font-specification:'Phosphate Bold';fill:#44b1ae;fill-opacity:1;stroke-width:0.565699"
+           y="58.225372"
+           x="3.7569175">LDA</tspan></text>
+      <text
+         transform="scale(0.96667027,1.0344789)"
+         id="text839-6-7"
+         y="56.067505"
+         x="106.45583"
+         style="font-size:36.2047px;line-height:0;font-family:'Feast of Flesh BB';-inkscape-font-specification:'Feast of Flesh BB';fill:#2584c1;fill-opacity:1;stroke-width:0.611013"
+         xml:space="preserve"><tspan
+           id="tspan841-5-0"
+           sodipodi:role="line"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:36.2047px;line-height:0.75;font-family:Monoid;-inkscape-font-specification:Monoid;letter-spacing:-2.82851px;word-spacing:-0.033942px;fill:#2584c1;fill-opacity:1;stroke-width:0.611013"
+           y="56.067505"
+           x="106.45583">Rec</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:48.2731px;line-height:1.25;font-family:'Feast of Flesh BB';-inkscape-font-specification:'Feast of Flesh BB';fill:#ac74d4;fill-opacity:1;stroke-width:0.565699"
+         x="86.841537"
+         y="58.063587"
+         id="text839-6"><tspan
+           x="86.841537"
+           y="58.063587"
+           style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:48.2731px;font-family:'Hiragino Kaku Gothic Pro';-inkscape-font-specification:'Hiragino Kaku Gothic Pro Semi-Bold';fill:#ac74d4;fill-opacity:1;stroke-width:0.565699"
+           sodipodi:role="line"
+           id="tspan841-5"><tspan
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Arial Narrow';-inkscape-font-specification:'Arial Narrow';fill:#ac74d4;fill-opacity:1;stroke-width:0.565699"
+             id="tspan849-6">4</tspan><tspan
+             style="font-style:normal;font-variant:normal;font-weight:300;font-stretch:normal;font-size:42.239px;font-family:'Hiragino Kaku Gothic Pro';-inkscape-font-specification:'Hiragino Kaku Gothic Pro Light';fill:#ac74d4;fill-opacity:1;stroke-width:0.565699"
+             id="tspan845-2" /></tspan></text>
+    </g>
   </g>
 </svg>

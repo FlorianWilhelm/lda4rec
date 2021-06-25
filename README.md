@@ -1,4 +1,4 @@
-![LDA4Rec](./docs/gfx/lda4rec.png?raw=true)
+![LDA4Rec](docs/gfx/lda4rec_601x132.png?raw=true)
 
 Matrix Factorization for collaborative filtering is just solving an adjoint Latent Dirichlet Allocation model after all.
 
