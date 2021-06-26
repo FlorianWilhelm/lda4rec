@@ -1,9 +1,8 @@
 ![LDA4Rec](docs/gfx/lda4rec_601x132.png?raw=true)
 
-Matrix Factorization for collaborative filtering is just solving an adjoint Latent Dirichlet Allocation model after all.
-
-> **_NOTE:_**  This sourcecode is AGPL-3-only licensed. If you require a more permissive licence, e.g. for
-> commercial reasons, contact me to obtain a licence for your business.
+Accompanying source code to the paper "Matrix Factorization for Collaborative Filtering is just Solving an
+Adjoint Latent Dirichlet Allocation Model after All" by Florian Wilhelm.
+The preprint can be found [here](docs/lda4rec_fwilhelm_prepint.pdf).
 
 ## Installation
 
@@ -103,8 +102,7 @@ Remark: `-exec sleep 30` avoids race condition when reading datasets if parallel
 └── .pre-commit-config.yaml <- Configuration of pre-commit git hooks.
 ```
 
-<!-- pyscaffold-notes -->
-
+<!--
 ## How to Cite
 
 Please cite LDA4Rec if it helps your research. You can use the following BibTeX entry:
@@ -127,13 +125,19 @@ keywords = {Conversational Recommendation, Critiquing},
 series = {RecSys '21}
 }
 ```
+-->
 
-The preprint can be found [here](docs/lda4rec_fwilhelm_prepint.pdf).
+## License
+
+This sourcecode is [AGPL-3-only](LICENSE.txt) licensed. If you require a more permissive licence, e.g. for
+commercial reasons, contact me to obtain a licence for your business.
+
+<!-- pyscaffold-notes -->
 
 ## Note
 
 This project has been set up using [PyScaffold] 4.0 and the [dsproject extension] 0.6.
-Some code was taken from [Spotlight] (MIT-licensed) by Maciej Kula as well as [lrann] (MIT-Licensed) by
+Some source code was taken from [Spotlight] (MIT-licensed) by Maciej Kula as well as [lrann] (MIT-licensed) by
 Florian Wilhelm and Marcel Kurovski.
 
 [PyScaffold]: https://pyscaffold.org/
