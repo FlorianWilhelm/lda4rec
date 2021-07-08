@@ -1,7 +1,7 @@
 ![LDA4Rec](docs/gfx/lda4rec_601x132.png?raw=true)
 
 Accompanying source code to the paper "Matrix Factorization for Collaborative Filtering is just Solving an
-Adjoint Latent Dirichlet Allocation Model after All" by Florian Wilhelm.
+Adjoint Latent Dirichlet Allocation Model After All" by Florian Wilhelm.
 The preprint can be found [here](docs/lda4rec_fwilhelm_prepint.pdf).
 
 ## Installation
@@ -102,7 +102,6 @@ Remark: `-exec sleep 30` avoids race condition when reading datasets if parallel
 └── .pre-commit-config.yaml <- Configuration of pre-commit git hooks.
 ```
 
-<!--
 ## How to Cite
 
 Please cite LDA4Rec if it helps your research. You can use the following BibTeX entry:
@@ -112,20 +111,18 @@ Please cite LDA4Rec if it helps your research. You can use the following BibTeX 
 author = {Wilhelm, Florian},
 title = {Matrix Factorization for Collaborative Filtering Is Just Solving an Adjoint Latent Dirichlet Allocation Model After All},
 year = {2021},
-% isbn = {9781450375832},
+month = sep,
+isbn = {978-1-4503-8458-2/21/09},
 publisher = {Association for Computing Machinery},
 address = {New York, NY, USA},
-% url = {https://doi.org/10.1145/3383313.3412240},
-% doi = {10.1145/3383313.3412240},
+url = {https://doi.org/10.1145/3460231.3474266},
+doi = {10.1145/3460231.3474266},
 booktitle = {Fifteenth ACM Conference on Recommender Systems},
-% pages = {13–22},
-% numpages = {10},
-keywords = {Conversational Recommendation, Critiquing},
-% location = {Virtual Event, Brazil},
+numpages = {12},
+location = {Amsterdam, Netherlands},
 series = {RecSys '21}
 }
 ```
--->
 
 ## License
 
