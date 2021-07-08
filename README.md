@@ -131,11 +131,15 @@ commercial reasons, contact me to obtain a licence for your business.
 
 <!-- pyscaffold-notes -->
 
+## Acknowledgement
+
+Special thanks goes to Du Phan and Fritz Obermeyer from the [(Num)Pyro](https://github.com/pyro-ppl) projects for all their help and comments on my code.
+
 ## Note
 
 This project has been set up using [PyScaffold] 4.0 and the [dsproject extension] 0.6.
 Some source code was taken from [Spotlight] (MIT-licensed) by Maciej Kula as well as [lrann] (MIT-licensed) by
-Florian Wilhelm and Marcel Kurovski.
+Florian Wilhelm and Marcel Kurovski. 
 
 [PyScaffold]: https://pyscaffold.org/
 [conda]: https://docs.conda.io/
