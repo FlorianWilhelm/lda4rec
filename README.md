@@ -133,7 +133,7 @@ commercial reasons, contact me to obtain a licence for your business.
 
 ## Acknowledgement
 
-Special thanks goes to Du Phan and Fritz Obermeyer from the [(Num)Pyro](https://github.com/pyro-ppl) projects for all their help and comments on my code.
+Special thanks goes to [Du Phan](https://github.com/fehiepsi) and [Fritz Obermeyer](https://github.com/fritzo) from the [(Num)Pyro](https://github.com/pyro-ppl) project for their kind help and helpful comments on my code.
 
 ## Note
 
