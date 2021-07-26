@@ -5,7 +5,11 @@
 
 Accompanying source code to the paper "Matrix Factorization for Collaborative Filtering is just Solving an
 Adjoint Latent Dirichlet Allocation Model After All" by Florian Wilhelm.
-The preprint can be found [here](docs/lda4rec_fwilhelm_prepint.pdf).
+The preprint can be found [here](docs/lda4rec_fwilhelm_prepint.pdf) along with the following statement:
+
+> "© Florian Wilhelm 2021. This is the author's version of the work. It is posted here for
+your personal use. Not for redistribution. The definitive version was published
+in RecSys '21: Fifteenth ACM Conference on Recommender Systems Proceedings, https://doi.org/10.1145/3460231.3474266."
 
 ## Installation
 
