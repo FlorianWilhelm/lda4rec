@@ -1,7 +1,6 @@
-[![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
-
-
 ![LDA4Rec](docs/gfx/lda4rec_601x132.png?raw=true)
+
+[![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
 
 Accompanying source code to the paper "Matrix Factorization for Collaborative Filtering is just Solving an
 Adjoint Latent Dirichlet Allocation Model After All" by Florian Wilhelm.
