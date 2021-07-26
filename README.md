@@ -124,7 +124,7 @@ address = {New York, NY, USA},
 url = {https://doi.org/10.1145/3460231.3474266},
 doi = {10.1145/3460231.3474266},
 booktitle = {Fifteenth ACM Conference on Recommender Systems},
-numpages = {12},
+numpages = {8},
 location = {Amsterdam, Netherlands},
 series = {RecSys '21}
 }
