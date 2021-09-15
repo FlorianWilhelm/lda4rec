@@ -1,6 +1,5 @@
-name: lda4rec
+name: lda4rec-ng
 channels:
-  - defaults
   - conda-forge
   - pytorch
 dependencies:
@@ -25,6 +24,7 @@ dependencies:
      - icecream
      - pyro-ppl
      - neptune-client>=0.9
+     - rankereval # replace evaluations.py later with it
      - daft  # only for plotting the graphical models
   # DEVELOPMENT ONLY PACKAGES (could also be kept in a separate environment file)
   - jupyterlab
@@ -36,4 +36,3 @@ dependencies:
   - nbstripout
   - sphinx
   - recommonmark
-  - nomkl # needed to avoid Error #15 on Mac: Initializing libiomp5.dylib, but found libiomp5.dylib already initialized

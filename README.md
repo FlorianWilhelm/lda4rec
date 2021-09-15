@@ -18,6 +18,7 @@ Matrix Factorization for collaborative filtering is just solving an adjoint Late
 * Do explicit interactions by converting them to inplicit, e.g. just sample a 5 star rating more often than 3 stars.
 * Use Vespa as knn and query tool.
 * Examine Coldstart for items and users
+* Evaluation Protocol https://www.ijcai.org/Proceedings/15/Papers/559.pdf and https://www.ismll.uni-hildesheim.de/pub/pdfs/Rendle2008-Online_Updating_Regularized_Kernel_Matrix_Factorization_Models.pdf
 
 
 ## Installation

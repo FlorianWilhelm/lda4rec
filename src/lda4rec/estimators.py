@@ -173,7 +173,7 @@ class LDA4RecEst(EstimatorMixin):
         self._n_users = None
         self._n_items = None
         self._model_params = None
-        self._predict_posterior = predict_posterior
+        self.predict_posterior = predict_posterior
 
     def _initialize(self, model_params):
         self._model_params = model_params
@@ -220,7 +220,7 @@ class LDA4RecEst(EstimatorMixin):
 
         return epoch_loss
 
-    def _predict_bayes(self, user_ids):
+    def _predict_bayes(self, user_ids, item_ids):
         assert len(torch.unique(user_ids)) == 1, "invalid usage"
 
         user_id = user_ids[0]
@@ -241,7 +241,7 @@ class LDA4RecEst(EstimatorMixin):
         # break ties by randomly adding values from [0, 1)
         counts = counts + torch.rand(counts.shape)
 
-        return counts
+        return counts[item_ids]
 
     def _predict_point(self, user_ids, item_ids):
         assert len(torch.unique(user_ids)) == 1, "invalid usage"
@@ -260,9 +260,17 @@ class LDA4RecEst(EstimatorMixin):
 
     def _predict(self, user_ids, item_ids):
         if self._predict_posterior:
-            return self._predict_bayes(user_ids)
+            return self._predict_bayes(user_ids, item_ids)
         else:
             return self._predict_point(user_ids, item_ids)
+
+    def save(self, filename):
+        pyro.get_param_store().save(filename)
+        return self
+
+    def load(self, filename):
+        pyro.get_param_store().load(filename)
+        return self
 
 
 class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):

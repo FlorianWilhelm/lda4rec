@@ -149,6 +149,81 @@ def model(
     )
 
 
+def hier_model(
+    interactions: torch.Tensor,
+    *,
+    n_topics: int,
+    n_users: int,
+    n_items: int,
+    alpha: Optional[float] = None,
+    batch_size: Optional[int] = None,
+) -> ModelData:
+    """Hierarchical Bayesian type model
+
+    Args:
+        interactions: 2-d array of shape (n_interactions, n_users)
+    """
+    alpha = 1.0 / n_topics if alpha is None else alpha
+    n_interactions = interactions.shape[0]
+
+    item_pops = pyro.sample(  # ( | n_items)
+        Site.item_pops, dist.Normal(torch.zeros(n_items), 2.0).to_event(1)
+    ).unsqueeze(0)
+
+    with pyro.plate(Plate.topics, n_topics):
+        topic_items = pyro.sample(  # (n_topics | n_items)
+            Site.topic_items,
+            dist.Normal(torch.zeros(1, n_items), 1.0).to_event(1),
+        )
+
+    with pyro.plate(Plate.users, n_users) as ind:
+        if interactions is not None:
+            with pyro.util.ignore_jit_warnings():
+                assert interactions.shape == (n_interactions, n_users)
+                assert interactions.max() < n_items
+            interactions = interactions[:, ind]
+
+        # todo: add hierarchy here.
+        user_topics = pyro.sample(  # (n_users | n_topics)
+            Site.user_topics,
+            dist.Dirichlet(alpha * torch.ones(n_topics)),  # prefer sparse
+        )
+
+        user_pop_devs = pyro.sample(  # (n_users | )
+            Site.user_pop_devs,
+            dist.LogNormal(-0.5 * torch.ones(1), 0.5),
+        ).unsqueeze(1)
+
+        with pyro.plate(Plate.interactions, n_interactions):
+            item_topics = pyro.sample(  # (n_ratings_per_user | n_users)
+                Site.item_topics,
+                dist.Categorical(user_topics),
+                infer={"enumerate": "parallel"},
+            )
+            if interactions is not None:
+                mask = interactions != NA
+                interactions[~mask] = 0
+            else:
+                mask = True
+
+            with poutine.mask(mask=mask):
+                # final preference depends on the topic distribution,
+                # the item popularity and how much a user cares about
+                # item popularity
+                prefs = topic_items[item_topics] + user_pop_devs * item_pops
+                interactions = pyro.sample(  # (n_interactions, n_users)
+                    Site.interactions,
+                    dist.Categorical(logits=prefs),
+                    obs=interactions,
+                )
+
+    return ModelData(
+        interactions=interactions,
+        item_pops=item_pops,
+        user_topics=user_topics,
+    )
+
+
 def guide(
     interactions: torch.Tensor,
     *,
