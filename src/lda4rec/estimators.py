@@ -173,7 +173,7 @@ class LDA4RecEst(EstimatorMixin):
         self._n_users = None
         self._n_items = None
         self._model_params = None
-        self.predict_posterior = predict_posterior
+        self.predict_posterior = predict_posterior  # extremely slow if True
 
     def _initialize(self, model_params):
         self._model_params = model_params
@@ -185,13 +185,14 @@ class LDA4RecEst(EstimatorMixin):
         ).detach()
         self.user_pop_devs = params[lda.Param.user_pop_devs_loc].detach()
 
-    def fit(self, interactions):
+    def fit(self, interactions, clear_params=None):
         run = neptune.get_last_run()
         self._n_users = interactions.n_users
         self._n_items = interactions.n_items
         interactions = torch.tensor(interactions.to_ratings_per_user(), dtype=torch.int)
 
-        if self._clear_param_store:
+        clear_params = self._clear_param_store if clear_params is None else clear_params
+        if clear_params:
             pyro.clear_param_store()
         pyro.enable_validation(__debug__)
 
@@ -221,6 +222,7 @@ class LDA4RecEst(EstimatorMixin):
         return epoch_loss
 
     def _predict_bayes(self, user_ids, item_ids):
+        """Calculate Bayesian Posterior, extremely slow!"""
         assert len(torch.unique(user_ids)) == 1, "invalid usage"
 
         user_id = user_ids[0]
@@ -244,6 +246,7 @@ class LDA4RecEst(EstimatorMixin):
         return counts[item_ids]
 
     def _predict_point(self, user_ids, item_ids):
+        """Calculate point estimate the frequentist way, fast!"""
         assert len(torch.unique(user_ids)) == 1, "invalid usage"
 
         user_topics = self.user_topics[user_ids]
@@ -259,7 +262,7 @@ class LDA4RecEst(EstimatorMixin):
         return dot
 
     def _predict(self, user_ids, item_ids):
-        if self._predict_posterior:
+        if self.predict_posterior:
             return self._predict_bayes(user_ids, item_ids)
         else:
             return self._predict_point(user_ids, item_ids)
