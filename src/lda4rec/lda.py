@@ -49,6 +49,7 @@ class Site:
     user_inv = "user_inv"
     item_topics = "item_topics"
     user_pop_devs = "user_pop_devs"
+    topic_prior = "topic_prior"
 
     @classmethod
     def all(cls) -> List[str]:
@@ -66,6 +67,7 @@ class Param:
     item_pops_scale = "item_pops_scale"
     user_pop_devs_loc = "user_pop_devs_loc"
     user_pop_devs_scale = "user_pop_devs_scale"
+    topic_prior_logits = "topic_prior_logits"
 
 
 @dataclass()
@@ -170,6 +172,11 @@ def hier_model(
         Site.item_pops, dist.Normal(torch.zeros(n_items), 2.0).to_event(1)
     ).unsqueeze(0)
 
+    topic_prior = pyro.sample(  # ( | n_topics)
+        Site.topic_prior,
+        dist.Dirichlet(alpha * torch.ones(n_topics)),  # prefer sparse
+    )
+
     with pyro.plate(Plate.topics, n_topics):
         topic_items = pyro.sample(  # (n_topics | n_items)
             Site.topic_items,
@@ -183,12 +190,12 @@ def hier_model(
                 assert interactions.max() < n_items
             interactions = interactions[:, ind]
 
-        # todo: add hierarchy here.
         user_topics = pyro.sample(  # (n_users | n_topics)
             Site.user_topics,
-            dist.Dirichlet(alpha * torch.ones(n_topics)),  # prefer sparse
+            dist.Dirichlet(topic_prior),
         )
 
+        # ToDo: Make this hierarchical and rather use beta using sigmoid
         user_pop_devs = pyro.sample(  # (n_users | )
             Site.user_pop_devs,
             dist.LogNormal(-0.5 * torch.ones(1), 0.5),
@@ -243,6 +250,79 @@ def guide(
         constraint=dist.constraints.positive,
     )
     pyro.sample(Site.item_pops, dist.Normal(item_pops_loc, item_pops_scale).to_event(1))
+
+    topic_items_loc = pyro.param(
+        Param.topic_items_loc,
+        lambda: torch.normal(mean=torch.zeros(n_topics, n_items), std=0.5),
+    )
+    topic_items_scale = pyro.param(
+        Param.topic_items_scale,
+        lambda: torch.normal(mean=torch.ones(n_topics, n_items), std=0.5).clamp(
+            min=0.1
+        ),
+        constraint=dist.constraints.positive,
+    )
+    with pyro.plate(Plate.topics, n_topics):
+        pyro.sample(
+            Site.topic_items,
+            dist.Normal(topic_items_loc, topic_items_scale).to_event(1),
+        )
+
+    user_topics_logits = pyro.param(
+        Param.user_topics_logits,
+        lambda: torch.zeros(n_users, n_topics),
+    )
+    user_pop_devs_loc = pyro.param(
+        Param.user_pop_devs_loc,
+        lambda: torch.normal(mean=-0.5 * torch.ones(n_users), std=0.1),
+    )
+    user_pop_devs_scale = pyro.param(
+        Param.user_pop_devs_scale,
+        lambda: torch.normal(mean=0.5 * torch.ones(n_users), std=0.1).clamp(min=0.1),
+        constraint=dist.constraints.positive,
+    )
+
+    with pyro.plate(Plate.users, n_users, batch_size) as ind:
+        pyro.sample(
+            Site.user_pop_devs,
+            dist.LogNormal(loc=user_pop_devs_loc[ind], scale=user_pop_devs_scale[ind]),
+        )
+
+        # use Delta dist for MAP avoiding high variances with Dirichlet posterior
+        pyro.sample(
+            Site.user_topics,
+            dist.Delta(F.softmax(user_topics_logits[ind], dim=-1), event_dim=1),
+        )
+
+
+def hier_guide(
+    interactions: torch.Tensor,
+    *,
+    n_topics: int,
+    n_users: int,
+    n_items: int,
+    alpha: Optional[float] = None,
+    batch_size: Optional[int] = None,
+):
+    alpha = 1.0 / n_topics if alpha is None else alpha
+
+    item_pops_loc = pyro.param(
+        Param.item_pops_loc,
+        lambda: torch.normal(mean=torch.zeros(n_items), std=1.0),
+    )
+    item_pops_scale = pyro.param(
+        Param.item_pops_scale,
+        lambda: torch.normal(mean=torch.ones(n_items), std=0.5).clamp(min=0.1),
+        constraint=dist.constraints.positive,
+    )
+    pyro.sample(Site.item_pops, dist.Normal(item_pops_loc, item_pops_scale).to_event(1))
+
+    topic_prior = pyro.param(
+        Param.topic_prior_logits,
+        lambda: alpha * torch.ones(n_topics),
+        constraint=dist.constraints.interval(0.05, 1.0),
+    )
+    pyro.sample(Site.topic_prior, dist.Dirichlet(topic_prior))
 
     topic_items_loc = pyro.param(
         Param.topic_items_loc,

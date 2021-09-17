@@ -146,7 +146,9 @@ class LDA4RecEst(EstimatorMixin):
         clear_param_store: bool = True,
         log_steps=100,
         model=None,
+        pred_model=None,
         guide=None,
+        pred_guide=None,
         n_samples=10_000,
     ):
         self._embedding_dim = (
@@ -162,7 +164,10 @@ class LDA4RecEst(EstimatorMixin):
         self._log_steps = log_steps
         self._rng = np.random.default_rng(rng)
         self._model = lda.model if model is None else model
+        self._pred_model = lda.pred_model if pred_model is None else pred_model
         self._guide = lda.guide if guide is None else guide
+        self._pred_guide = lda.pred_guide if pred_guide is None else pred_guide
+
         self._n_samples = n_samples
         set_seed(self._rng.integers(0, 2 ** 32 - 1), cuda=self._use_cuda)
 
@@ -232,8 +237,8 @@ class LDA4RecEst(EstimatorMixin):
         params["user_id"] = user_id
 
         predictive = Predictive(
-            lda.pred_model,
-            guide=lda.pred_guide,
+            self._pred_model,
+            guide=self._pred_guide,
             num_samples=self._n_samples,
             return_sites=[lda.Site.interactions],
             parallel=False,
