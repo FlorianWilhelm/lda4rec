@@ -272,20 +272,16 @@ def guide(
         Param.user_topics_logits,
         lambda: torch.zeros(n_users, n_topics),
     )
-    user_pop_devs_loc = pyro.param(
+
+    user_pop_devs = pyro.param(
         Param.user_pop_devs_loc,
         lambda: torch.normal(mean=-0.5 * torch.ones(n_users), std=0.1),
-    )
-    user_pop_devs_scale = pyro.param(
-        Param.user_pop_devs_scale,
-        lambda: torch.normal(mean=0.5 * torch.ones(n_users), std=0.1).clamp(min=0.1),
-        constraint=dist.constraints.positive,
     )
 
     with pyro.plate(Plate.users, n_users, batch_size) as ind:
         pyro.sample(
             Site.user_pop_devs,
-            dist.LogNormal(loc=user_pop_devs_loc[ind], scale=user_pop_devs_scale[ind]),
+            dist.Delta(torch.exp(user_pop_devs[ind])),
         )
 
         # use Delta dist for MAP avoiding high variances with Dirichlet posterior
@@ -345,20 +341,16 @@ def hier_guide(
         Param.user_topics_logits,
         lambda: torch.zeros(n_users, n_topics),
     )
-    user_pop_devs_loc = pyro.param(
+
+    user_pop_devs = pyro.param(
         Param.user_pop_devs_loc,
         lambda: torch.normal(mean=-0.5 * torch.ones(n_users), std=0.1),
-    )
-    user_pop_devs_scale = pyro.param(
-        Param.user_pop_devs_scale,
-        lambda: torch.normal(mean=0.5 * torch.ones(n_users), std=0.1).clamp(min=0.1),
-        constraint=dist.constraints.positive,
     )
 
     with pyro.plate(Plate.users, n_users, batch_size) as ind:
         pyro.sample(
             Site.user_pop_devs,
-            dist.LogNormal(loc=user_pop_devs_loc[ind], scale=user_pop_devs_scale[ind]),
+            dist.Delta(torch.exp(user_pop_devs[ind])),
         )
 
         # use Delta dist for MAP avoiding high variances with Dirichlet posterior
