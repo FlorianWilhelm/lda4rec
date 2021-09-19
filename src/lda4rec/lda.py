@@ -50,6 +50,8 @@ class Site:
     item_topics = "item_topics"
     user_pop_devs = "user_pop_devs"
     topic_prior = "topic_prior"
+    user_pop_devs_prior_mu = "user_pop_devs_prior_mu"
+    user_pop_devs_prior_sigma = "user_pop_devs_prior_sigma"
 
     @classmethod
     def all(cls) -> List[str]:
@@ -68,6 +70,10 @@ class Param:
     user_pop_devs_loc = "user_pop_devs_loc"
     user_pop_devs_scale = "user_pop_devs_scale"
     topic_prior_logits = "topic_prior_logits"
+    user_pop_devs_prior_mu_loc = "user_pop_devs_prior_mu_loc"
+    user_pop_devs_prior_mu_scale = "user_pop_devs_prior_mu_scale"
+    user_pop_devs_prior_sigma_loc = "user_pop_devs_prior_sigma_loc"
+    user_pop_devs_prior_sigma_scale = "user_pop_devs_prior_sigma_scale"
 
 
 @dataclass()
@@ -177,6 +183,14 @@ def hier_model(
         dist.Dirichlet(alpha * torch.ones(n_topics)),  # prefer sparse
     )
 
+    user_pop_devs_prior_mu = pyro.sample(  # ( | 1)
+        Site.user_pop_devs_prior_mu, dist.Normal(-0.5 * torch.ones(1), 1.0)
+    )
+
+    user_pop_devs_prior_sigma = pyro.sample(  # ( | 1)
+        Site.user_pop_devs_prior_sigma, dist.HalfNormal(scale=2.0 * torch.ones(1))
+    )
+
     with pyro.plate(Plate.topics, n_topics):
         topic_items = pyro.sample(  # (n_topics | n_items)
             Site.topic_items,
@@ -195,10 +209,9 @@ def hier_model(
             dist.Dirichlet(topic_prior),
         )
 
-        # ToDo: Make this hierarchical and rather use beta using sigmoid
         user_pop_devs = pyro.sample(  # (n_users | )
             Site.user_pop_devs,
-            dist.LogNormal(-0.5 * torch.ones(1), 0.5),
+            dist.LogNormal(user_pop_devs_prior_mu, user_pop_devs_prior_sigma),
         ).unsqueeze(1)
 
         with pyro.plate(Plate.interactions, n_interactions):
@@ -320,6 +333,39 @@ def hier_guide(
     )
     pyro.sample(Site.topic_prior, dist.Dirichlet(topic_prior))
 
+    user_pop_devs_prior_mu_loc = pyro.param(
+        Param.user_pop_devs_prior_mu_loc,
+        lambda: torch.normal(mean=-0.5 * torch.ones(1), std=0.5),
+    )
+    user_pop_devs_prior_mu_scale = pyro.param(
+        Param.user_pop_devs_prior_mu_scale,
+        lambda: torch.normal(mean=0.5 * torch.ones(1), std=0.1).clamp(min=0.1),
+        constraint=dist.constraints.positive,
+    )
+    pyro.sample(
+        Site.user_pop_devs_prior_mu,
+        dist.Normal(user_pop_devs_prior_mu_loc, user_pop_devs_prior_mu_scale),
+    )
+
+    user_pop_devs_prior_sigma_loc = pyro.param(
+        Param.user_pop_devs_prior_sigma_loc,
+        lambda: torch.normal(mean=-2.0 * torch.ones(1), std=0.5),
+    )
+    user_pop_devs_prior_sigma_scale = pyro.param(
+        Param.user_pop_devs_prior_sigma_scale,
+        lambda: torch.normal(mean=1.0 * torch.ones(1), std=0.1).clamp(min=0.1),
+        constraint=dist.constraints.positive,
+    )
+    pyro.sample(
+        Site.user_pop_devs_prior_sigma,
+        dist.TransformedDistribution(
+            dist.Normal(
+                loc=user_pop_devs_prior_sigma_loc, scale=user_pop_devs_prior_sigma_scale
+            ),
+            transforms=dist.transforms.ExpTransform(),
+        ),
+    )
+
     topic_items_loc = pyro.param(
         Param.topic_items_loc,
         lambda: torch.normal(mean=torch.zeros(n_topics, n_items), std=0.5),
@@ -341,12 +387,10 @@ def hier_guide(
         Param.user_topics_logits,
         lambda: torch.zeros(n_users, n_topics),
     )
-
     user_pop_devs = pyro.param(
         Param.user_pop_devs_loc,
         lambda: torch.normal(mean=-0.5 * torch.ones(n_users), std=0.1),
     )
-
     with pyro.plate(Plate.users, n_users, batch_size) as ind:
         pyro.sample(
             Site.user_pop_devs,
