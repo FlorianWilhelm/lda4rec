@@ -22,7 +22,7 @@ import os.path
 from collections import UserDict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import neptune.new as neptune
 import numpy as np
@@ -207,3 +207,24 @@ def cmp_ranks(orig_scores, alt_scores, eps=1e-4):
         if orig_delta + alt_delta > eps:
             return False
     return True
+
+
+def reparam_beta(mu: float, scale: float) -> Tuple[float, float]:
+    """Reparameterize Beta dist with mean `mu` and `scale` for scaling the variance
+
+    The variance is in the interval `(0, mu * (1 - mu) )`. `scale` is thus in
+    `(0, 1)` and is multiplied to `mu * (1 - mu)`.
+    """
+    assert 0 < scale < 1, "scale must be in (0, 1)!"
+    var = scale * mu * (1 - mu)
+    alpha = ((1 - mu) / var - 1 / mu) * mu ** 2
+    beta = alpha * (1 / mu - 1)
+    return alpha, beta
+
+
+def reparam_beta_inv(alpha: float, beta: float) -> Tuple[float, float]:
+    assert alpha > 0 and beta > 0, "alpha and beta must be > 0!"
+    mu = alpha / (alpha + beta)
+    var = alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1))
+    scale = var / (mu * (1 - mu))
+    return mu, scale

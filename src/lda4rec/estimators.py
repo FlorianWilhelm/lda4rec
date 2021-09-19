@@ -226,7 +226,7 @@ class LDA4RecEst(EstimatorMixin):
 
         return epoch_loss
 
-    def _predict_bayes(self, user_ids, item_ids):
+    def _predict_posterior(self, user_ids, item_ids):
         """Calculate Bayesian Posterior, extremely slow!"""
         assert len(torch.unique(user_ids)) == 1, "invalid usage"
 
@@ -268,7 +268,7 @@ class LDA4RecEst(EstimatorMixin):
 
     def _predict(self, user_ids, item_ids):
         if self.predict_posterior:
-            return self._predict_bayes(user_ids, item_ids)
+            return self._predict_posterior(user_ids, item_ids)
         else:
             return self._predict_point(user_ids, item_ids)
 
