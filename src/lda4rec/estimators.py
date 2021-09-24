@@ -175,20 +175,21 @@ class LDA4RecEst(EstimatorMixin):
         self.pops = None
         self.user_topics = None
         self.topic_items = None
+        self.params = None  # all inferred params including above
         self._n_users = None
         self._n_items = None
-        self._model_params = None
+        self._model_params = None  # params used when fitting
         self.predict_posterior = predict_posterior  # extremely slow if True
 
     def _initialize(self, model_params):
         self._model_params = model_params
-        params = pyro.get_param_store()
-        self.pops = params[lda.Param.item_pops_loc].detach()
-        self.topic_items = params[lda.Param.topic_items_loc].detach()
+        self.params = pyro.get_param_store()
+        self.pops = self.params[lda.Param.item_pops_loc].detach()
+        self.topic_items = self.params[lda.Param.topic_items_loc].detach()
         self.user_topics = F.softmax(
-            params[lda.Param.user_topics_logits], dim=-1
+            self.params[lda.Param.user_topics_logits], dim=-1
         ).detach()
-        self.user_pop_devs = params[lda.Param.user_pop_devs_loc].detach()
+        self.user_pop_devs = self.params[lda.Param.user_pop_devs_loc].detach()
 
     def fit(self, interactions, clear_params=None):
         run = neptune.get_last_run()

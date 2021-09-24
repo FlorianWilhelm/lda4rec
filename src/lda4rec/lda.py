@@ -188,7 +188,7 @@ def hier_model(
     )
 
     user_pop_devs_prior_sigma = pyro.sample(  # ( | 1)
-        Site.user_pop_devs_prior_sigma, dist.HalfNormal(scale=2.0 * torch.ones(1))
+        Site.user_pop_devs_prior_sigma, dist.HalfNormal(scale=4.0 * torch.ones(1))
     )
 
     with pyro.plate(Plate.topics, n_topics):
@@ -349,7 +349,7 @@ def hier_guide(
 
     user_pop_devs_prior_sigma_loc = pyro.param(
         Param.user_pop_devs_prior_sigma_loc,
-        lambda: torch.normal(mean=-2.0 * torch.ones(1), std=0.5),
+        lambda: torch.normal(mean=1.0 * torch.ones(1), std=0.5),
     )
     user_pop_devs_prior_sigma_scale = pyro.param(
         Param.user_pop_devs_prior_sigma_scale,
