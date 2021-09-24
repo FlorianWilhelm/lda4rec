@@ -277,8 +277,11 @@ class LDA4RecEst(EstimatorMixin):
         pyro.get_param_store().save(filename)
         return self
 
-    def load(self, filename):
+    def load(self, filename, interactions):
+        """Load model, interactions are only used to infer metadata"""
+        self._n_iter = 0
         pyro.get_param_store().load(filename)
+        self.fit(interactions, clear_params=False)
         return self
 
 
