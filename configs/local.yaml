@@ -1,0 +1,27 @@
+main:
+    # name: my_name # name is set to name of config file per default
+    data_path: '../data'
+    log_path: '../logs'
+    log_level: INFO # log_level for log files
+
+neptune:
+    project: florian.wilhelm/lda4rec-exp-ng  # `shared/onboarding` if no account
+    api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
+    tags: []
+    description: "Experiment run on GCP"
+    mode: "async" # or "offline", "sync", "debug"
+
+experiment:
+    dataset: movielens-100k
+    dataset_seed: 1729
+    interaction_pivot: 0
+    model_seed: 123
+    min_user_interactions: 20
+    max_user_interactions: 200
+    estimator: MFEst
+    train_test_split: random_train_test_split
+    est_params:
+        embedding_dim: 4
+        n_iter: 100
+        batch_size: 128
+        learning_rate: 0.01

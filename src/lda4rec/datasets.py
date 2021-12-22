@@ -195,6 +195,8 @@ class DataLoader(object):
         user_ids = df.user_id.values
         item_ids = df.item_id.values
         ratings = df.rating.values
+        user_ids = compact(user_ids)
+        item_ids = compact(item_ids)
         interactions = Interactions(
             user_ids=user_ids, item_ids=item_ids, ratings=ratings
         )
@@ -207,8 +209,8 @@ class DataLoader(object):
 
         with h5py.File(ratings, "r") as data:
             return Interactions(
-                user_ids=data["ratings"][:, 0],
-                item_ids=data["ratings"][:, 1],
+                user_ids=compact(data["ratings"][:, 0]),
+                item_ids=compact(data["ratings"][:, 1]),
                 ratings=data["ratings"][:, 2].astype(np.float32),
                 timestamps=np.arange(len(data["ratings"]), dtype=np.int32),
             )
@@ -365,9 +367,6 @@ class Interactions(object):
         n_users: Optional[int] = None,
         n_items: Optional[int] = None,
     ):
-        user_ids = compact(user_ids)
-        item_ids = compact(item_ids)
-
         self.n_users = n_users or int(user_ids.max() + 1)
         self.n_items = n_items or int(item_ids.max() + 1)
 
@@ -453,7 +452,6 @@ class Interactions(object):
             self.weights = self.weights[mask]
         if self.timestamps is not None:
             self.timestamps = self.timestamps[mask]
-        self.compact_()
 
     def remove_user_ids_(self, user_ids: np.ndarray):
         mask = ~np.in1d(self.user_ids, user_ids)
@@ -529,13 +527,6 @@ class Interactions(object):
         clone = self.copy()
         clone.binarize_(pivot)
         return clone
-
-    def compact_(self) -> Tuple[np.ndarray, np.ndarray]:
-        self.user_ids, user_map = compact(self.user_ids, return_map=True)
-        self.item_ids, item_map = compact(self.item_ids, return_map=True)
-        self.n_users = int(self.user_ids.max() + 1)
-        self.n_items = int(self.item_ids.max() + 1)
-        return user_map, item_map
 
     def copy(self) -> Interactions:
         return deepcopy(self)
@@ -692,17 +683,25 @@ def items_per_user_train_test_split(
         .groupby("user_id", as_index=False, sort=False)
         .apply(select_test)
     )
-    mask = df.pop("test") == 0
-    train_df, test_df = df[mask], df[~mask]
+    train_mask = df.pop("test") == 0
+    test_mask = ~train_mask
 
     train = Interactions(
-        user_ids=train_df["user_id"].to_numpy(),
-        item_ids=train_df["item_id"].to_numpy(),
-        ratings=train_df["rating"].to_numpy(),
+        interactions.user_ids[train_mask],
+        interactions.item_ids[train_mask],
+        ratings=_index_or_none(interactions.ratings, train_mask),
+        timestamps=_index_or_none(interactions.timestamps, train_mask),
+        weights=_index_or_none(interactions.weights, train_mask),
+        n_users=interactions.n_users,
+        n_items=interactions.n_items,
     )
     test = Interactions(
-        user_ids=test_df["user_id"].to_numpy(),
-        item_ids=test_df["item_id"].to_numpy(),
-        ratings=test_df["rating"].to_numpy(),
+        interactions.user_ids[test_mask],
+        interactions.item_ids[test_mask],
+        ratings=_index_or_none(interactions.ratings, test_mask),
+        timestamps=_index_or_none(interactions.timestamps, test_mask),
+        weights=_index_or_none(interactions.weights, test_mask),
+        n_users=interactions.n_users,
+        n_items=interactions.n_items,
     )
     return train, test

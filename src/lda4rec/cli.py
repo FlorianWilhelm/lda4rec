@@ -111,8 +111,9 @@ def run_experiment(cfg: Config):
         test, valid = random_train_test_split(rest, test_percentage=0.5, rng=data_rng)
     elif exp_cfg["train_test_split"] == "items_per_user_train_test_split":
         train, rest = items_per_user_train_test_split(
-            dataset, n_items_per_user=9, rng=data_rng
+            dataset, n_items_per_user=18, rng=data_rng
         )
+
         test, valid = items_per_user_train_test_split(
             rest, n_items_per_user=9, rng=data_rng
         )
@@ -152,7 +153,13 @@ def experiments_gen(template):
                 exp_temp["experiment"]["est_params"][name] = param
             yield exp_temp
 
-    estimators = ["LDA4RecEst", "PopEst", "MFEst"]
+    estimators = [
+        "LDA4RecEst",
+        "HierLDA4RecEst",
+        "HierVarLDA4RecEst",
+        "PopEst",
+        "MFEst",
+    ]
     datasets = ["movielens-1m", "goodbooks"]
     model_seeds = [1426]
 
