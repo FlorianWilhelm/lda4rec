@@ -154,7 +154,7 @@ def experiments_gen(template):
 
     estimators = ["LDA4RecEst", "PopEst", "MFEst"]
     datasets = ["movielens-1m", "goodbooks"]
-    model_seeds = [3128845410]
+    model_seeds = [1426]
 
     embedding_dims = [32, 48, 64, 80]
     learning_rates = [0.001]
