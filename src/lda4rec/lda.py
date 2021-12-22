@@ -415,8 +415,6 @@ def hier_geo_guide(
     alpha: Optional[float] = None,
     batch_size: Optional[int] = None,
 ):
-    alpha = 1.0 / n_topics if alpha is None else alpha
-
     item_pops_loc = pyro.param(
         Param.item_pops_loc,
         lambda: torch.normal(mean=torch.zeros(n_items), std=1.0),
@@ -430,12 +428,12 @@ def hier_geo_guide(
 
     topic_prior_p = pyro.param(
         Param.topic_prior_p,
-        lambda: alpha * torch.ones(1),
+        lambda: torch.ones(1),
         constraint=dist.constraints.interval(0.1, 1.0),
     )
     topic_prior_q = pyro.param(
         Param.topic_prior_q,
-        lambda: alpha * torch.ones(1),
+        lambda: 0.9 * torch.ones(1),
         constraint=dist.constraints.interval(0.2, 1.0),
     )
 
