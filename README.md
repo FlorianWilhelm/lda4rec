@@ -44,9 +44,9 @@ lda4rec -c configs/default.yaml run
 ```
 A config like `configs/default.yaml` can also be used as a template to create an experiment set with:
 ```
-lda4rec -c configs/default.yaml create -ds movielens-100k
+lda4rec -c configs/default.yaml create
 ```
-using the Movielens-100k dataset. Check out `cli.py` for more details.
+Check out `cli.py` for more details.
 
 
 ## Cloud Setup

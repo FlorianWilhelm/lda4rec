@@ -70,6 +70,8 @@ class Param:
     user_pop_devs_loc = "user_pop_devs_loc"
     user_pop_devs_scale = "user_pop_devs_scale"
     topic_prior_logits = "topic_prior_logits"
+    topic_prior_p = "topic_prior_p"
+    topic_prior_q = "topic_prior_q"
     user_pop_devs_prior_mu_loc = "user_pop_devs_prior_mu_loc"
     user_pop_devs_prior_mu_scale = "user_pop_devs_prior_mu_scale"
     user_pop_devs_prior_sigma_loc = "user_pop_devs_prior_sigma_loc"
@@ -304,7 +306,7 @@ def guide(
         )
 
 
-def hier_guide(
+def hier_dir_guide(
     interactions: torch.Tensor,
     *,
     n_topics: int,
@@ -332,6 +334,117 @@ def hier_guide(
         constraint=dist.constraints.interval(0.05, 1.0),
     )
     pyro.sample(Site.topic_prior, dist.Dirichlet(topic_prior))
+
+    user_pop_devs_prior_mu_loc = pyro.param(
+        Param.user_pop_devs_prior_mu_loc,
+        lambda: torch.normal(mean=-0.5 * torch.ones(1), std=0.5),
+    )
+    user_pop_devs_prior_mu_scale = pyro.param(
+        Param.user_pop_devs_prior_mu_scale,
+        lambda: torch.normal(mean=0.5 * torch.ones(1), std=0.1).clamp(min=0.1),
+        constraint=dist.constraints.positive,
+    )
+    pyro.sample(
+        Site.user_pop_devs_prior_mu,
+        dist.Normal(user_pop_devs_prior_mu_loc, user_pop_devs_prior_mu_scale),
+    )
+
+    user_pop_devs_prior_sigma_loc = pyro.param(
+        Param.user_pop_devs_prior_sigma_loc,
+        lambda: torch.normal(mean=1.0 * torch.ones(1), std=0.5),
+    )
+    user_pop_devs_prior_sigma_scale = pyro.param(
+        Param.user_pop_devs_prior_sigma_scale,
+        lambda: torch.normal(mean=1.0 * torch.ones(1), std=0.1).clamp(min=0.1),
+        constraint=dist.constraints.positive,
+    )
+    pyro.sample(
+        Site.user_pop_devs_prior_sigma,
+        dist.TransformedDistribution(
+            dist.Normal(
+                loc=user_pop_devs_prior_sigma_loc, scale=user_pop_devs_prior_sigma_scale
+            ),
+            transforms=dist.transforms.ExpTransform(),
+        ),
+    )
+
+    topic_items_loc = pyro.param(
+        Param.topic_items_loc,
+        lambda: torch.normal(mean=torch.zeros(n_topics, n_items), std=0.5),
+    )
+    topic_items_scale = pyro.param(
+        Param.topic_items_scale,
+        lambda: torch.normal(mean=torch.ones(n_topics, n_items), std=0.5).clamp(
+            min=0.1
+        ),
+        constraint=dist.constraints.positive,
+    )
+    with pyro.plate(Plate.topics, n_topics):
+        pyro.sample(
+            Site.topic_items,
+            dist.Normal(topic_items_loc, topic_items_scale).to_event(1),
+        )
+
+    user_topics_logits = pyro.param(
+        Param.user_topics_logits,
+        lambda: torch.zeros(n_users, n_topics),
+    )
+    user_pop_devs = pyro.param(
+        Param.user_pop_devs_loc,
+        lambda: torch.normal(mean=-0.5 * torch.ones(n_users), std=0.1),
+    )
+    with pyro.plate(Plate.users, n_users, batch_size) as ind:
+        pyro.sample(
+            Site.user_pop_devs,
+            dist.Delta(torch.exp(user_pop_devs[ind])),
+        )
+
+        # use Delta dist for MAP avoiding high variances with Dirichlet posterior
+        pyro.sample(
+            Site.user_topics,
+            dist.Delta(F.softmax(user_topics_logits[ind], dim=-1), event_dim=1),
+        )
+
+
+def hier_geo_guide(
+    interactions: torch.Tensor,
+    *,
+    n_topics: int,
+    n_users: int,
+    n_items: int,
+    alpha: Optional[float] = None,
+    batch_size: Optional[int] = None,
+):
+    alpha = 1.0 / n_topics if alpha is None else alpha
+
+    item_pops_loc = pyro.param(
+        Param.item_pops_loc,
+        lambda: torch.normal(mean=torch.zeros(n_items), std=1.0),
+    )
+    item_pops_scale = pyro.param(
+        Param.item_pops_scale,
+        lambda: torch.normal(mean=torch.ones(n_items), std=0.5).clamp(min=0.1),
+        constraint=dist.constraints.positive,
+    )
+    pyro.sample(Site.item_pops, dist.Normal(item_pops_loc, item_pops_scale).to_event(1))
+
+    topic_prior_p = pyro.param(
+        Param.topic_prior_p,
+        lambda: alpha * torch.ones(1),
+        constraint=dist.constraints.interval(0.1, 1.0),
+    )
+    topic_prior_q = pyro.param(
+        Param.topic_prior_q,
+        lambda: alpha * torch.ones(1),
+        constraint=dist.constraints.interval(0.2, 1.0),
+    )
+
+    pyro.sample(
+        Site.topic_prior,
+        dist.Dirichlet(
+            (topic_prior_p.log() + topic_prior_q.log() * torch.arange(n_topics)).exp()
+        ),
+    )
 
     user_pop_devs_prior_mu_loc = pyro.param(
         Param.user_pop_devs_prior_mu_loc,

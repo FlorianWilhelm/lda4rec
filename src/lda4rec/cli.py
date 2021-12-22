@@ -27,7 +27,11 @@ from neptune.new.types import File
 from neptune.utils import get_git_info
 
 from . import __version__, estimators
-from .datasets import get_dataset, random_train_test_split
+from .datasets import (
+    get_dataset,
+    items_per_user_train_test_split,
+    random_train_test_split,
+)
 from .evaluations import summary
 from .utils import Config, log_dataset, log_summary
 
@@ -98,9 +102,22 @@ def run_experiment(cfg: Config):
     dataset = get_dataset(exp_cfg["dataset"], data_dir=cfg["main"]["data_path"])
     dataset.implicit_(exp_cfg["interaction_pivot"])  # implicit feedback
     dataset.max_user_interactions_(exp_cfg["max_user_interactions"], rng=data_rng)
+    dataset.min_user_interactions_(exp_cfg["min_user_interactions"])
 
-    train, rest = random_train_test_split(dataset, test_percentage=0.10, rng=data_rng)
-    test, valid = random_train_test_split(rest, test_percentage=0.5, rng=data_rng)
+    if exp_cfg["train_test_split"] == "random_train_test_split":
+        train, rest = random_train_test_split(
+            dataset, test_percentage=0.10, rng=data_rng
+        )
+        test, valid = random_train_test_split(rest, test_percentage=0.5, rng=data_rng)
+    elif exp_cfg["train_test_split"] == "items_per_user_train_test_split":
+        train, rest = items_per_user_train_test_split(
+            dataset, n_items_per_user=9, rng=data_rng
+        )
+        test, valid = items_per_user_train_test_split(
+            rest, n_items_per_user=9, rng=data_rng
+        )
+    else:
+        raise RuntimeError(f"Unknown train-test-split: {exp_cfg['train_test_split']}")
 
     for name, data in [("train", train), ("valid", valid), ("test", test)]:
         log_dataset(name, data)
@@ -135,15 +152,18 @@ def experiments_gen(template):
                 exp_temp["experiment"]["est_params"][name] = param
             yield exp_temp
 
-    estimators = ["LDA4RecEst"]
+    estimators = ["LDA4RecEst", "PopEst", "MFEst"]
     datasets = ["movielens-1m", "goodbooks"]
     model_seeds = [3128845410]
 
-    embedding_dims = [4, 8, 16, 32, 48, 64]
+    embedding_dims = [32, 48, 64, 80]
     learning_rates = [0.001]
     batch_sizes = [64, 128]
+    train_test_splits = ["random_train_test_split", "items_per_user_train_test_split"]
 
-    for estimator, model_seed, dataset in product(estimators, model_seeds, datasets):
+    for estimator, model_seed, dataset, train_test_split in product(
+        estimators, model_seeds, datasets, train_test_splits
+    ):
         exp_temp = deepcopy(template)
         exp_cfg = exp_temp["experiment"]
         exp_cfg.update(
@@ -151,18 +171,19 @@ def experiments_gen(template):
                 "dataset": dataset,
                 "model_seed": model_seed,
                 "estimator": estimator,
+                "train_test_split": train_test_split,
             }
         )
         if estimator == "PopEst":
             exp_cfg["est_params"] = {}
             exp_temp["experiment"] = exp_cfg
             yield exp_temp
-        elif estimator == "LDA4RecEst":
+        elif estimator in ("LDA4RecEst", "HierLDA4RecEst", "HierVarLDA4RecEst"):
             params = {
-                "embedding_dim": embedding_dims,
+                "embedding_dim": [8, 16, 32],
                 "learning_rate": learning_rates,
                 "batch_size": batch_sizes,
-                "n_iter": 10000,
+                "n_iter": [10_000],
             }
             yield from make_configs(exp_temp, params.keys(), product(*params.values()))
         elif estimator in ("MFEst", "SNMFEst", "NMFEst"):
@@ -170,6 +191,7 @@ def experiments_gen(template):
                 "embedding_dim": embedding_dims,
                 "learning_rate": learning_rates,
                 "batch_size": batch_sizes,
+                "n_iter": [200],
             }
             yield from make_configs(exp_temp, params.keys(), product(*params.values()))
         else:

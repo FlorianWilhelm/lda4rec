@@ -285,6 +285,16 @@ class LDA4RecEst(EstimatorMixin):
         return self
 
 
+class HierLDA4RecEst(LDA4RecEst):
+    def __init__(self, **kwargs):
+        super().__init__(model=lda.hier_model, guide=lda.hier_dir_guide, **kwargs)
+
+
+class HierVarLDA4RecEst(LDA4RecEst):
+    def __init__(self, **kwargs):
+        super().__init__(model=lda.hier_model, guide=lda.hier_geo_guide, **kwargs)
+
+
 class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
     """Base estimator handling implicit feedback training and prediction"""
 
