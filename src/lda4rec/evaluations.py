@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>
 """
 import numpy as np
 import pandas as pd
-from rankereval import AP, BinaryLabels, Precision, Rankings, Recall, ReciprocalRank
+from rankereval import BinaryLabels, Precision, Rankings, Recall, ReciprocalRank
 
 from .datasets import Interactions
 
@@ -60,10 +60,7 @@ def summary(
         recall = Recall(k).mean(labels, ranks)["score"]
         prec = Precision(k).mean(labels, ranks)["score"]
         mrr = ReciprocalRank(k).mean(labels, ranks)["score"]
-        map = AP(k).mean(labels, ranks)["score"]
-        return pd.Series(
-            dict(prec=prec, recall=recall, mrr=mrr, map=map), name=name
-        ).to_frame()
+        return pd.Series(dict(prec=prec, recall=recall, mrr=mrr), name=name).to_frame()
 
     train_ranks = Rankings.from_scores(calc_preds(est, train))
     test_ranks = Rankings.from_scores(calc_preds(est, test, train))
