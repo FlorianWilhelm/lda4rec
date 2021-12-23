@@ -287,12 +287,12 @@ class LDA4RecEst(EstimatorMixin):
 
 class HierLDA4RecEst(LDA4RecEst):
     def __init__(self, **kwargs):
-        super().__init__(model=lda.hier_model, guide=lda.hier_dir_guide, **kwargs)
+        super().__init__(model=lda.hier_model, guide=lda.hier_guide, **kwargs)
 
 
 class HierVarLDA4RecEst(LDA4RecEst):
     def __init__(self, **kwargs):
-        super().__init__(model=lda.hier_model, guide=lda.hier_geo_guide, **kwargs)
+        super().__init__(model=lda.hier_model, guide=lda.hier_var_guide, **kwargs)
 
 
 class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):

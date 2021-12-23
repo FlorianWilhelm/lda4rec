@@ -26,6 +26,8 @@ import torch
 import torch.nn.functional as F
 from pyro import poutine
 
+from .utils import reparam_beta
+
 # missing value for int
 NA = -999
 
@@ -70,6 +72,8 @@ class Param:
     user_pop_devs_loc = "user_pop_devs_loc"
     user_pop_devs_scale = "user_pop_devs_scale"
     topic_prior_logits = "topic_prior_logits"
+    topic_prior_alpha = "topic_prior_alpha"
+    topic_prior_beta = "topic_prior_beta"
     topic_prior_p = "topic_prior_p"
     topic_prior_q = "topic_prior_q"
     user_pop_devs_prior_mu_loc = "user_pop_devs_prior_mu_loc"
@@ -180,10 +184,11 @@ def hier_model(
         Site.item_pops, dist.Normal(torch.zeros(n_items), 2.0).to_event(1)
     ).unsqueeze(0)
 
+    beta_alpha, beta_beta = reparam_beta(alpha, 0.9)
     topic_prior = pyro.sample(  # ( | n_topics)
         Site.topic_prior,
-        dist.Dirichlet(alpha * torch.ones(n_topics)),  # prefer sparse
-    )
+        dist.Beta(beta_alpha * torch.ones(n_topics), beta_beta).to_event(1),
+    ).unsqueeze(0)
 
     user_pop_devs_prior_mu = pyro.sample(  # ( | 1)
         Site.user_pop_devs_prior_mu, dist.Normal(-0.5 * torch.ones(1), 1.0)
@@ -306,7 +311,7 @@ def guide(
         )
 
 
-def hier_dir_guide(
+def hier_guide(
     interactions: torch.Tensor,
     *,
     n_topics: int,
@@ -328,12 +333,20 @@ def hier_dir_guide(
     )
     pyro.sample(Site.item_pops, dist.Normal(item_pops_loc, item_pops_scale).to_event(1))
 
-    topic_prior = pyro.param(
-        Param.topic_prior_logits,
-        lambda: alpha * torch.ones(n_topics),
+    init_alpha, init_beta = reparam_beta(alpha, 0.1)
+    topic_prior_alpha = pyro.param(
+        Param.topic_prior_alpha,
+        lambda: init_alpha * torch.ones(n_topics),
         constraint=dist.constraints.interval(0.05, 1.0),
     )
-    pyro.sample(Site.topic_prior, dist.Dirichlet(topic_prior))
+    topic_prior_beta = pyro.param(
+        Param.topic_prior_beta,
+        lambda: init_beta * torch.ones(n_topics),
+        constraint=dist.constraints.interval(0.05, 1.0),
+    )
+    pyro.sample(
+        Site.topic_prior, dist.Beta(topic_prior_alpha, topic_prior_beta).to_event(1)
+    )
 
     user_pop_devs_prior_mu_loc = pyro.param(
         Param.user_pop_devs_prior_mu_loc,
@@ -406,7 +419,7 @@ def hier_dir_guide(
         )
 
 
-def hier_geo_guide(
+def hier_var_guide(
     interactions: torch.Tensor,
     *,
     n_topics: int,
@@ -415,6 +428,8 @@ def hier_geo_guide(
     alpha: Optional[float] = None,
     batch_size: Optional[int] = None,
 ):
+    alpha = 1.0 / n_topics if alpha is None else alpha
+
     item_pops_loc = pyro.param(
         Param.item_pops_loc,
         lambda: torch.normal(mean=torch.zeros(n_items), std=1.0),
@@ -439,9 +454,9 @@ def hier_geo_guide(
 
     pyro.sample(
         Site.topic_prior,
-        dist.Dirichlet(
+        dist.Delta(
             (topic_prior_p.log() + topic_prior_q.log() * torch.arange(n_topics)).exp()
-        ),
+        ).to_event(1),
     )
 
     user_pop_devs_prior_mu_loc = pyro.param(
