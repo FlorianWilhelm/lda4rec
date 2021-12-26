@@ -290,7 +290,7 @@ def guide(
 
     user_topics_logits = pyro.param(
         Param.user_topics_logits,
-        lambda: torch.zeros(n_users, n_topics),
+        lambda: torch.normal(torch.zeros(n_users, n_topics), 1.0 / n_topics),
     )
 
     user_pop_devs = pyro.param(
@@ -400,7 +400,7 @@ def hier_guide(
 
     user_topics_logits = pyro.param(
         Param.user_topics_logits,
-        lambda: torch.zeros(n_users, n_topics),
+        lambda: torch.normal(torch.zeros(n_users, n_topics), 1.0 / n_topics),
     )
     user_pop_devs = pyro.param(
         Param.user_pop_devs_loc,
@@ -511,7 +511,7 @@ def hier_var_guide(
 
     user_topics_logits = pyro.param(
         Param.user_topics_logits,
-        lambda: torch.zeros(n_users, n_topics),
+        lambda: torch.normal(torch.zeros(n_users, n_topics), 1.0 / n_topics),
     )
     user_pop_devs = pyro.param(
         Param.user_pop_devs_loc,

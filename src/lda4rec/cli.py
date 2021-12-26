@@ -157,15 +157,13 @@ def experiments_gen(template):
         "LDA4RecEst",
         "HierLDA4RecEst",
         "HierVarLDA4RecEst",
-        "PopEst",
-        "MFEst",
     ]
     datasets = ["movielens-1m", "goodbooks"]
     model_seeds = [1426]
 
     embedding_dims = [32, 48, 64, 80]
     learning_rates = [0.001]
-    batch_sizes = [64, 128]
+    batch_sizes = [128, 256]
     train_test_splits = ["random_train_test_split", "items_per_user_train_test_split"]
 
     for estimator, model_seed, dataset, train_test_split in product(
