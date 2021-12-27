@@ -435,8 +435,11 @@ class LDATrafoMixin(metaclass=ABCMeta):
         self.lda_trafo = False
         super().__init__(*args, **kwargs)
 
-    def get_nmf(self, user_id=None):
-        """Get NMF representation for a single user_id"""
+    def get_nmf_params(self, user_id=None):
+        """Get NMF representation for a single user_id or all (if None)
+
+        From the lemma of the paper
+        """
         if user_id is None:
             user_ids = torch.arange(self._n_users, dtype=torch.int64)
         else:
@@ -464,26 +467,41 @@ class LDATrafoMixin(metaclass=ABCMeta):
 
         return w, h, b
 
-    def get_pqt(self, user_id=None, eps=1e-6):
-        w, h, b = self.get_nmf(user_id)
+    def get_lda_params(self, user_id=None, eps=1e-6):
+        """Get adjoint LDA formulation of a single user_id or all (if None)
+
+        From the theorem of the paper
+        """
+        w, h, b = self.get_nmf_params(user_id)
         t = w.sum()
-        q = h + b.unsqueeze(-1) / t
-        n = q.sum(dim=0)
-        q = q / n
-        p = w * n
-        p = p / p.sum()
+        g = h + b.unsqueeze(-1) / t
+        n = g.sum(dim=0)
+        v = w * n
+        v = v / v.sum()
 
-        assert torch.all(p >= 0.0)
-        assert torch.all(q >= 0.0)
-        assert (p.sum() - 1.0).abs() <= eps
-        topic_sums = (q.sum(dim=0) - np.ones(q.shape[1])).abs()
-        assert torch.all(topic_sums <= eps * topic_sums.shape[0])
+        assert torch.all(v >= 0.0)
+        assert torch.all(g >= 0.0)
+        assert (v.sum() - 1.0).abs() <= eps
 
-        return p, q, t
+        # corresponding naming from adjoint LDA problem
+        # delta = b
+        # phi = h
+        # theta = v
+        # lambda = 1/t
+
+        return v, t, h, b
 
     def get_item_probs(self, user_id, eps=1e-6) -> np.array:
-        p, q, _ = self.get_pqt(user_id, eps=eps)
-        probs = torch.matmul(p, q.T).squeeze()
+        v, t, h, b = self.get_lda_params(user_id, eps=eps)
+        # from the proof of the theorem
+        g = h + b.unsqueeze(-1) / t
+        n = g.sum(dim=0)
+        g = g / n
+
+        topic_sums = (g.sum(dim=0) - np.ones(g.shape[1])).abs()
+        assert torch.all(topic_sums <= eps * topic_sums.shape[0])
+
+        probs = torch.matmul(v, g.T).squeeze()
 
         assert torch.all(probs >= 0.0)
         assert (probs.sum() - 1.0).abs() <= eps
