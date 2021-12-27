@@ -285,7 +285,7 @@ class NMFNet(nn.Module):
 
         Args:
             user_ids (tensor): Tensor of user indices.
-        item_ids (tensor): Tensor of item indices.
+            item_ids (tensor): Tensor of item indices.
 
         Returns:
             tensor: Tensor of predictions.

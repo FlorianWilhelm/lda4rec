@@ -435,12 +435,15 @@ class LDATrafoMixin(metaclass=ABCMeta):
         self.lda_trafo = False
         super().__init__(*args, **kwargs)
 
-    def get_nmf(self, user_id):
+    def get_nmf(self, user_id=None):
         """Get NMF representation for a single user_id"""
-        user_id, item_ids = process_ids(
-            user_id.numpy(), None, self._n_items, self._use_cuda, cartesian=False
-        )
-        w = self._model.user_embeddings(user_id[0]).detach().unsqueeze(0)
+        if user_id is None:
+            user_ids = torch.arange(self._n_users, dtype=torch.int64)
+        else:
+            user_ids = user_id.expand(1)
+        item_ids = torch.arange(self._n_items, dtype=torch.int64)
+
+        w = self._model.user_embeddings(user_ids).detach()
         b = self._model.item_biases(item_ids).squeeze().detach()
         h = self._model.item_embeddings(item_ids).detach()
 
@@ -461,7 +464,7 @@ class LDATrafoMixin(metaclass=ABCMeta):
 
         return w, h, b
 
-    def get_pqt(self, user_id, eps=1e-6):
+    def get_pqt(self, user_id=None, eps=1e-6):
         w, h, b = self.get_nmf(user_id)
         t = w.sum()
         q = h + b.unsqueeze(-1) / t
