@@ -107,6 +107,9 @@ class PopEst(EstimatorMixin):
         # Only for consistence to other estimators
         self._rng = np.random.default_rng(rng)
 
+    def __repr__(self):
+        return "<{}>".format(self.__class__.__name__)
+
     def fit(self, interactions):
         self._n_users = interactions.n_users
         self._n_items = interactions.n_items
@@ -126,6 +129,17 @@ class PopEst(EstimatorMixin):
         """Overwrite this if you need to do more then just applying the model"""
         assert self.pops is not None
         return self.pops[item_ids]
+
+    def save(self, filename):
+        torch.save(self.pops, filename)
+        return self
+
+    def load(self, filename, interactions):
+        """Load model, interactions are only used to infer metadata"""
+        self._n_users = interactions.n_users
+        self._n_items = interactions.n_items
+        self.pops = torch.load(filename)
+        return self
 
 
 class LDA4RecEst(EstimatorMixin):
