@@ -473,15 +473,17 @@ class LDATrafoMixin(metaclass=ABCMeta):
         From the theorem of the paper
         """
         w, h, b = self.get_nmf_params(user_id)
-        t = w.sum()
-        g = h + b.unsqueeze(-1) / t
-        n = g.sum(dim=0)
+        n_users, n_topics = w.shape
+
+        t = w.sum(dim=1)
+        h_sum = h.sum(dim=0, keepdim=True).expand(n_users, -1)
+        bt_sum = (b.sum(dim=0) / t).unsqueeze(-1).expand(-1, n_topics)
+        n = h_sum + bt_sum
         v = w * n
-        v = v / v.sum()
+        v = v / v.sum(dim=1, keepdim=True)
 
         assert torch.all(v >= 0.0)
-        assert torch.all(g >= 0.0)
-        assert (v.sum() - 1.0).abs() <= eps
+        assert torch.all((v.sum(dim=1) - 1.0).abs() <= eps)
 
         # corresponding naming from adjoint LDA problem
         # delta = b
@@ -498,6 +500,7 @@ class LDATrafoMixin(metaclass=ABCMeta):
         n = g.sum(dim=0)
         g = g / n
 
+        assert torch.all(g >= 0.0)
         topic_sums = (g.sum(dim=0) - np.ones(g.shape[1])).abs()
         assert torch.all(topic_sums <= eps * topic_sums.shape[0])
 
