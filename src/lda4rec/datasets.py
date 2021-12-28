@@ -22,6 +22,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import re
 import shutil
 from collections import defaultdict
 from copy import deepcopy
@@ -129,7 +130,7 @@ def compact(
     new_order = np.array([mapper[elem] for elem in iterable], dtype=np.int32)
     if return_map:
         inv_mapper = {v: k for k, v in mapper.items()}
-        arg_map = np.array([inv_mapper[i] for i in range(len(inv_mapper))])
+        arg_map = np.array([inv_mapper[i] for i in range(len(mapper))])
         return new_order, arg_map
     else:
         return new_order
@@ -266,6 +267,111 @@ class DataLoader(object):
             n_users=len(retain_user_map) + 1,
             n_items=len(retain_item_map) + 1,
         )
+
+
+def parse_movielens_movie_data_line(line):
+    mid, name_year, genres = line.split("::")
+    genres = genres.strip().split("|")
+    mid = int(mid)
+    name, year = re.match(r"(.*)\W\((\d+)\)", name_year).groups()
+    return mid, name, year, genres
+
+
+def parse_movielens_movie_data(path):
+    info = dict()
+    with open(path, encoding="cp1252") as fh:
+        for line in fh.readlines():
+            mid, name, year, genres = parse_movielens_movie_data_line(line)
+            info[mid] = dict(name=name, year=year, genres=genres)
+    return info
+
+
+def parse_movielens_user_data_line(line):
+    uid, sex, age, occup, postal = line.split("::")
+    uid, age, occup = map(int, [uid, age, occup])
+    return uid, sex, age, occup, postal
+
+
+def parse_movielens_user_data(path):
+    age_map = {
+        1: "Under 18",
+        18: "18-24",
+        25: "25-34",
+        35: "35-44",
+        45: "45-49",
+        50: "50-55",
+        56: "56+",
+    }
+    occup_map = {
+        0: "other or not specified",
+        1: "academic/educator",
+        2: "artist",
+        3: "clerical/admin",
+        4: "college/grad student",
+        5: "customer service",
+        6: "doctor/health care",
+        7: "executive/managerial",
+        8: "farmer",
+        9: "homemaker",
+        10: "K-12 student",
+        11: "lawyer",
+        12: "programmer",
+        13: "retired",
+        14: "sales/marketing",
+        15: "scientist",
+        16: "self-employed",
+        17: "technician/engineer",
+        18: "tradesman/craftsman",
+        19: "unemployed",
+        20: "writer",
+    }
+
+    info = dict()
+    with open(path, encoding="cp1252") as fh:
+        for line in fh.readlines():
+            uid, sex, age, occup, postal = parse_movielens_user_data_line(line)
+            info[uid] = dict(
+                sex=sex, age=age_map[age], occupation=occup_map[occup], postal=postal
+            )
+    return info
+
+
+class MetaData:
+    def __init__(self, user_ids_map, item_ids_map, user_info, item_info):
+        self.user_o2c = {k: v for k, v in enumerate(user_ids_map)}
+        self.user_c2o = {v: k for k, v in self.user_o2c.items()}
+        self.item_o2c = {k: v for k, v in enumerate(item_ids_map)}
+        self.item_c2o = {v: k for k, v in self.item_o2c.items()}
+        self._user_info = user_info
+        self._item_info = item_info
+
+    @classmethod
+    def from_movielens_1m(cls):
+        resource = MOVIELENS_1M
+        dir_path = DataLoader().get_data(resource)
+        ratings = os.path.join(dir_path, resource.interactions)
+        df = pd.read_csv(ratings, **resource.read_args)
+        user_ids = df.user_id.values
+        item_ids = df.item_id.values
+        _, user_ids_map = compact(user_ids, return_map=True)
+        _, item_ids_map = compact(item_ids, return_map=True)
+
+        movie_info = parse_movielens_movie_data(os.path.join(dir_path, "movies.dat"))
+        user_info = parse_movielens_user_data(os.path.join(dir_path, "users.dat"))
+
+        obj = cls(user_ids_map, item_ids_map, user_info, movie_info)
+
+        return obj
+
+    def item_info(self, item_id, compacted=True):
+        if compacted:
+            item_id = self.item_c2o[item_id]
+        return self._item_info[item_id]
+
+    def user_info(self, user_id, compacted=True):
+        if compacted:
+            user_id = self.user_c2o[user_id]
+        return self._item_info[user_id]
 
 
 def download(url, dest_path, show_progress=True):
