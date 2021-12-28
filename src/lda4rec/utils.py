@@ -30,6 +30,7 @@ import pandas as pd
 import pyro
 import torch
 import yaml
+from scipy.stats import entropy
 
 from .datasets import Interactions
 
@@ -228,3 +229,16 @@ def reparam_beta_inv(alpha: float, beta: float) -> Tuple[float, float]:
     var = alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1))
     scale = var / (mu * (1 - mu))
     return mu, scale
+
+
+def norm_entropy(a: torch.Tensor) -> float:
+    """Normed entropy"""
+    n = torch.ones_like(a)
+    n = n / n.sum()
+    return entropy(a) / entropy(n)
+
+
+def dist_overlap(a: torch.Tensor, b: torch.Tensor) -> float:
+    """Overlap of two categorical distributions"""
+    a, b = a.expand(1, -1), b.expand(1, -1)
+    return torch.cat([a, b], dim=0).min(dim=0).values.sum().item()
