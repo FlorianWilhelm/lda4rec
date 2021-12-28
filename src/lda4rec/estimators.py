@@ -426,6 +426,17 @@ class BaseEstimator(EstimatorMixin, metaclass=ABCMeta):
 
         return negative_prediction
 
+    def save(self, filename):
+        torch.save(self._model.state_dict(), filename)
+        return self
+
+    def load(self, filename, interactions):
+        """Load model, interactions are only used to infer metadata"""
+        self._initialize(interactions)
+        self._model.load_state_dict(torch.load(filename))
+        self._model.eval()
+        return self
+
 
 class LDATrafoMixin(metaclass=ABCMeta):
     """Mixin transforming MF to adjoint LDA formulation"""
