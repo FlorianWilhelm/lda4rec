@@ -142,6 +142,14 @@ def run_experiment(cfg: Config):
     else:
         run["sys/tags"].add("success")
 
+    mcfg = cfg["main"]
+    model_path = Path(mcfg["model_path"]) / Path(
+        f"{mcfg['name']}_{exp_cfg['estimator']}_{mcfg['timestamp_str']}.model"
+    )
+    _logger.info(f"Storing model as {model_path}...")
+    est.save(model_path)
+    _logger.info("Experiment finished successfully!")
+
 
 def experiments_gen(template):
     """Generate different experiment config setups"""
@@ -154,17 +162,18 @@ def experiments_gen(template):
             yield exp_temp
 
     estimators = [
-        "LDA4RecEst",
-        "HierLDA4RecEst",
-        "HierVarLDA4RecEst",
+        "MFEst",
+        # "LDA4RecEst",
+        # "HierLDA4RecEst",
+        # "HierVarLDA4RecEst",
     ]
     datasets = ["movielens-1m", "goodbooks"]
-    model_seeds = [1426]
+    model_seeds = [1426, 1729, 1981]
 
-    embedding_dims = [32, 48, 64, 80]
+    embedding_dims = [16, 32, 64]
     learning_rates = [0.001]
     batch_sizes = [128, 256]
-    train_test_splits = ["random_train_test_split", "items_per_user_train_test_split"]
+    train_test_splits = ["random_train_test_split"]
 
     for estimator, model_seed, dataset, train_test_split in product(
         estimators, model_seeds, datasets, train_test_splits

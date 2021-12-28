@@ -2,6 +2,7 @@ main:
     # name: my_name # name is set to name of config file per default
     data_path: '../data'
     log_path: '../logs'
+    model_path: '../models'
     log_level: INFO # log_level for log files
 
 neptune:
@@ -18,10 +19,10 @@ experiment:
     model_seed: 123
     min_user_interactions: 20
     max_user_interactions: 200
-    estimator: MFEst
-    train_test_split: random_train_test_split
-    est_params:
-        embedding_dim: 4
-        n_iter: 100
-        batch_size: 128
-        learning_rate: 0.01
+    estimator: PopEst
+    train_test_split: items_per_user_train_test_split
+    est_params: {}
+##        embedding_dim: 4
+##        n_iter: 1000
+##        batch_size: 128
+##        learning_rate: 0.01
