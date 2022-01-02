@@ -500,15 +500,19 @@ class LDATrafoMixin(metaclass=ABCMeta):
         w, h, b = self.get_nmf_params(user_id)
         n_users, n_topics = w.shape
 
-        t = w.sum(dim=1)
-        h_sum = h.sum(dim=0, keepdim=True).expand(n_users, -1)
-        bt_sum = (b.sum(dim=0) / t).unsqueeze(-1).expand(-1, n_topics)
-        n = h_sum + bt_sum
+        m = h.sum(dim=0, keepdim=True)
+        h = h / m
+        t = w.sum(dim=1, keepdim=True) * m
+        n = h.sum(dim=0, keepdim=True).expand(n_users, -1) + (b.sum(dim=0) / t).expand(
+            -1, n_topics
+        )
         v = w * n
         v = v / v.sum(dim=1, keepdim=True)
 
         assert torch.all(v >= 0.0)
         assert torch.all((v.sum(dim=1) - 1.0).abs() <= eps)
+        assert torch.all(h >= 0.0)
+        assert torch.all((h.sum(dim=0) - 1.0).abs()) <= eps
 
         # corresponding naming from adjoint LDA problem
         # delta = b

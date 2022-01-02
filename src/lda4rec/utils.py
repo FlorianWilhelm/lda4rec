@@ -242,3 +242,12 @@ def dist_overlap(a: torch.Tensor, b: torch.Tensor) -> float:
     """Overlap of two categorical distributions"""
     a, b = a.expand(1, -1), b.expand(1, -1)
     return torch.cat([a, b], dim=0).min(dim=0).values.sum().item()
+
+
+def apply_along_dim(x, func, dim):
+    """Works like Numpy's apply_along_axis"""
+    vals = [func(x_i) for x_i in torch.unbind(x, dim=dim)]
+    if isinstance(vals[0], torch.Tensor):
+        return torch.stack(vals)
+    else:
+        return torch.Tensor(vals)
