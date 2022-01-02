@@ -500,15 +500,22 @@ class LDATrafoMixin(metaclass=ABCMeta):
         w, h, b = self.get_nmf_params(user_id)
         n_users, n_topics = w.shape
 
-        m = h.sum(dim=0, keepdim=True)
-        h = h / m
-        t = w.sum(dim=1, keepdim=True) * m
-        n = h.sum(dim=0, keepdim=True).expand(n_users, -1) + (b.sum(dim=0) / t).expand(
-            -1, n_topics
-        )
+        # assert cohorts are categorical distribution
+        m = h.sum(dim=0)
+        h = h / m.unsqueeze(0)
+        w = w * m
+
+        # make also the popularities a categorical distribution
+        b_sum = b.sum()
+        b = b / b_sum
+        t = w.sum(dim=1, keepdim=True) / b_sum
+
+        n = h.sum(dim=0, keepdim=True).expand(n_users, -1) + 1.0 / t
         v = w * n
         v = v / v.sum(dim=1, keepdim=True)
 
+        assert torch.all(b >= 0.0)
+        assert (b.sum() - 1.0).abs() <= eps
         assert torch.all(v >= 0.0)
         assert torch.all((v.sum(dim=1) - 1.0).abs() <= eps)
         assert torch.all(h >= 0.0)
