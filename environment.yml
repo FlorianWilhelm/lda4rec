@@ -8,6 +8,7 @@ dependencies:
   # BASICS
   - numpy
   - scipy
+  - pingouin
   - pandas
   - pytorch
   - tqdm
