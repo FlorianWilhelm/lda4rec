@@ -338,10 +338,10 @@ def parse_movielens_user_data(path):
 
 class MetaData:
     def __init__(self, user_ids_map, item_ids_map, user_info, item_info):
-        self.user_o2c = {k: v for k, v in enumerate(user_ids_map)}
-        self.user_c2o = {v: k for k, v in self.user_o2c.items()}
-        self.item_o2c = {k: v for k, v in enumerate(item_ids_map)}
-        self.item_c2o = {v: k for k, v in self.item_o2c.items()}
+        self.user_c2o = {k: v for k, v in enumerate(user_ids_map)}
+        self.user_o2c = {v: k for k, v in self.user_c2o.items()}
+        self.item_c2o = {k: v for k, v in enumerate(item_ids_map)}
+        self.item_o2c = {v: k for k, v in self.item_c2o.items()}
         self._user_info = user_info
         self._item_info = item_info
 
