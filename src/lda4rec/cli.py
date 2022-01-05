@@ -114,14 +114,9 @@ def run_experiment(cfg: Config):
         train, rest = items_per_user_train_test_split(
             dataset, n_items_per_user=10, rng=data_rng
         )
-
-        # ToDo: For statistical analysis we set test = valid as we do no hyperparamter
-        #  optimization or model selection and need the sample size, reset this later on
-        # test, valid = items_per_user_train_test_split(
-        #    rest, n_items_per_user=9, rng=data_rng
-        # )
-        test = rest
-        valid = rest
+        test, valid = items_per_user_train_test_split(
+            rest, n_items_per_user=5, rng=data_rng
+        )
     else:
         raise RuntimeError(f"Unknown train-test-split: {exp_cfg['train_test_split']}")
 

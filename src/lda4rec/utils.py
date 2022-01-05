@@ -28,9 +28,9 @@ import neptune.new as neptune
 import numpy as np
 import pandas as pd
 import pyro
+import seaborn as sns
 import torch
 import yaml
-from scipy.stats import entropy
 
 from .datasets import Interactions
 
@@ -231,23 +231,18 @@ def reparam_beta_inv(alpha: float, beta: float) -> Tuple[float, float]:
     return mu, scale
 
 
-def norm_entropy(a: torch.Tensor) -> float:
-    """Normed entropy"""
-    n = torch.ones_like(a)
-    n = n / n.sum()
-    return entropy(a) / entropy(n)
+def split_along_dim_apply(x, func, dim):
+    """In the spirit of Numpy's apply_along_axis but differently.
 
-
-def dist_overlap(a: torch.Tensor, b: torch.Tensor) -> float:
-    """Overlap of two categorical distributions"""
-    a, b = a.expand(1, -1), b.expand(1, -1)
-    return torch.cat([a, b], dim=0).min(dim=0).values.sum().item()
-
-
-def apply_along_dim(x, func, dim):
-    """Works like Numpy's apply_along_axis"""
+    Splits along a dimension and applies a function to the remaining dims.
+    """
     vals = [func(x_i) for x_i in torch.unbind(x, dim=dim)]
     if isinstance(vals[0], torch.Tensor):
         return torch.stack(vals)
     else:
         return torch.Tensor(vals)
+
+
+def plot_cat(dist):
+    """Plot a categorical distribution nicely"""
+    sns.barplot(x=np.arange(dist.shape[0]), y=dist.numpy())
