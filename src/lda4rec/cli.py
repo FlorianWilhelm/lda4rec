@@ -110,13 +110,18 @@ def run_experiment(cfg: Config):
         )
         test, valid = random_train_test_split(rest, test_percentage=0.5, rng=data_rng)
     elif exp_cfg["train_test_split"] == "items_per_user_train_test_split":
+        # ToDo: make number of items configurable
         train, rest = items_per_user_train_test_split(
-            dataset, n_items_per_user=18, rng=data_rng
+            dataset, n_items_per_user=10, rng=data_rng
         )
 
-        test, valid = items_per_user_train_test_split(
-            rest, n_items_per_user=9, rng=data_rng
-        )
+        # ToDo: For statistical analysis we set test = valid as we do no hyperparamter
+        #  optimization or model selection and need the sample size, reset this later on
+        # test, valid = items_per_user_train_test_split(
+        #    rest, n_items_per_user=9, rng=data_rng
+        # )
+        test = rest
+        valid = rest
     else:
         raise RuntimeError(f"Unknown train-test-split: {exp_cfg['train_test_split']}")
 
@@ -168,12 +173,13 @@ def experiments_gen(template):
         # "HierVarLDA4RecEst",
     ]
     datasets = ["movielens-1m", "goodbooks"]
-    model_seeds = [1426, 1729, 1981]
+    model_seeds = [1426, 1729, 1981, 9876, 666]
 
-    embedding_dims = [16, 32, 64]
+    embedding_dims = [8, 16, 32, 64, 128]
     learning_rates = [0.001]
-    batch_sizes = [128, 256]
-    train_test_splits = ["random_train_test_split"]
+    batch_sizes = [256]
+    train_test_splits = ["items_per_user_train_test_split"]
+    # ^ "random_train_test_split"
 
     for estimator, model_seed, dataset, train_test_split in product(
         estimators, model_seeds, datasets, train_test_splits
