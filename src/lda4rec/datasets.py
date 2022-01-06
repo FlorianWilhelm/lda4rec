@@ -562,10 +562,14 @@ class Interactions(object):
     def remove_user_ids_(self, user_ids: np.ndarray):
         mask = ~np.in1d(self.user_ids, user_ids)
         self.select_by_mask_(mask)
+        self.user_ids = compact(self.user_ids)
+        self.n_users = int(self.user_ids.max() + 1)
 
     def remove_item_ids_(self, item_ids: np.ndarray):
         mask = ~np.in1d(self.item_ids, item_ids)
         self.select_by_mask_(mask)
+        self.item_ids = compact(self.item_ids)
+        self.n_users = int(self.item_ids.max() + 1)
 
     def max_user_interactions_(self, n: int, rng=None):
         """Restrict number of interactions per user to n
