@@ -52,14 +52,14 @@ class Resource:
 MOVIELENS_20M = Resource(
     path="ml-20m/raw.zip",
     interactions="ratings.csv",
-    read_args={"names": ["user_id", "item_id", "rating", "timestamp"], "header": 0},
+    read_args={"names": ["user_id", "item_id", "rating"], "header": 0},
     url="http://files.grouplens.org/datasets/movielens/ml-20m.zip",
 )
 MOVIELENS_10M = Resource(
     path="ml-10m/raw.zip",
     interactions="ratings.dat",
     read_args={
-        "names": ["user_id", "item_id", "rating", "timestamp"],
+        "names": ["user_id", "item_id", "rating"],
         "header": 0,
         "sep": "::",
         "engine": "python",  # due to > 1 char separator
@@ -70,7 +70,7 @@ MOVIELENS_1M = Resource(
     path="ml-1m/raw.zip",
     interactions="ratings.dat",
     read_args={
-        "names": ["user_id", "item_id", "rating", "timestamp"],
+        "names": ["user_id", "item_id", "rating"],
         "header": 0,
         "sep": "::",
         "engine": "python",  # due to > 1 char separator
@@ -81,7 +81,7 @@ MOVIELENS_100K_OLD = Resource(
     path="ml100k-old/raw.zip",
     interactions="u.data",
     read_args={
-        "names": ["user_id", "item_id", "rating", "timestamp"],
+        "names": ["user_id", "item_id", "rating"],
         "header": None,
         "sep": "\t",
     },
@@ -90,7 +90,7 @@ MOVIELENS_100K_OLD = Resource(
 MOVIELENS_100K = Resource(
     path="ml-latest-small/raw.zip",
     interactions="ratings.csv",
-    read_args={"names": ["user_id", "item_id", "rating", "timestamp"], "header": 0},
+    read_args={"names": ["user_id", "item_id", "rating"], "header": 0},
     url="http://files.grouplens.org/datasets/movielens/ml-latest-small.zip",
 )
 GOODBOOKS = Resource(
@@ -213,7 +213,6 @@ class DataLoader(object):
                 user_ids=compact(data["ratings"][:, 0]),
                 item_ids=compact(data["ratings"][:, 1]),
                 ratings=data["ratings"][:, 2].astype(np.float32),
-                timestamps=np.arange(len(data["ratings"]), dtype=np.int32),
             )
 
     def load_amazon(self, min_user_interactions=20, min_item_interactions=10):
@@ -230,7 +229,6 @@ class DataLoader(object):
             user_ids = data["/user_id"][:]
             item_ids = data["/item_id"][:]
             ratings = data["/rating"][:]
-            timestamps = data["/timestamp"][:]
 
         retain_user_ids = _filter_by_count(user_ids, min_user_interactions)
         retain_item_ids = _filter_by_count(item_ids, min_item_interactions)
@@ -242,7 +240,6 @@ class DataLoader(object):
         user_ids = user_ids[retain]
         item_ids = item_ids[retain]
         ratings = ratings[retain]
-        timestamps = timestamps[retain]
 
         user_ids = compact(user_ids)
         item_ids = compact(item_ids)
@@ -251,7 +248,6 @@ class DataLoader(object):
             user_ids=user_ids,
             item_ids=item_ids,
             ratings=ratings,
-            timestamps=timestamps,
         )
 
 
@@ -399,8 +395,7 @@ def create_data_dir(path):
 class Interactions(object):
     """
     Interactions object. Contains (at a minimum) pair of user-item
-    interactions, but can also be enriched with ratings, timestamps,
-    and interaction weights.
+    interactions, but can also be enriched with ratings.
 
     For *implicit feedback* scenarios, user ids and item ids should
     only be provided for user-item pairs where an interaction was
@@ -419,10 +414,6 @@ class Interactions(object):
             array of item ids of the user-item pairs
         ratings: array of np.float32, optional
             array of ratings
-        timestamps: array of np.int32, optional
-            array of timestamps
-        weights: array of np.float32, optional
-            array of weights
         num_users: int, optional
             Number of distinct users in the dataset.
             Must be larger than the maximum user id
@@ -439,10 +430,6 @@ class Interactions(object):
             array of item ids of the user-item pairs
         ratings: array of np.float32, optional
             array of ratings
-        timestamps: array of np.int32, optional
-            array of timestamps
-        weights: array of np.float32, optional
-            array of weights
         n_users: int, optional
             Number of distinct users in the dataset.
         n_items: int, optional
@@ -454,8 +441,6 @@ class Interactions(object):
         user_ids: np.ndarray,
         item_ids: np.ndarray,
         ratings: Optional[np.ndarray] = None,
-        timestamps: Optional[np.ndarray] = None,
-        weights: Optional[np.ndarray] = None,
         n_users: Optional[int] = None,
         n_items: Optional[int] = None,
     ):
@@ -465,8 +450,6 @@ class Interactions(object):
         self.user_ids = user_ids
         self.item_ids = item_ids
         self.ratings = ratings if ratings is not None else np.ones(user_ids.shape)
-        self.timestamps = timestamps
-        self.weights = weights
 
         self._check()
 
@@ -489,8 +472,6 @@ class Interactions(object):
             self.user_ids,
             self.item_ids,
             self.ratings,
-            self.timestamps,
-            self.weights,
         ):
             if attr is not None:
                 data_hash.update(np.array(attr))
@@ -502,8 +483,6 @@ class Interactions(object):
             self.user_ids[idx],
             self.item_ids[idx],
             ratings=self.ratings[idx],
-            timestamps=self.timestamps[idx] if self.timestamps is not None else None,
-            weights=self.weights[idx] if self.weights is not None else None,
             n_users=self.n_users,
             n_items=self.n_items,
         )
@@ -523,8 +502,6 @@ class Interactions(object):
         for name, value in (
             ("item IDs", self.item_ids),
             ("ratings", self.ratings),
-            ("timestamps", self.timestamps),
-            ("weights", self.weights),
         ):
 
             if value is None:
@@ -540,10 +517,6 @@ class Interactions(object):
         self.user_ids = self.user_ids[mask]
         self.item_ids = self.item_ids[mask]
         self.ratings = self.ratings[mask]
-        if self.weights is not None:
-            self.weights = self.weights[mask]
-        if self.timestamps is not None:
-            self.timestamps = self.timestamps[mask]
 
     def remove_user_ids_(self, user_ids: np.ndarray):
         mask = ~np.in1d(self.user_ids, user_ids)
@@ -722,8 +695,6 @@ def shuffle_interactions(interactions: Interactions, rng=None):
         interactions.user_ids[shuffle_indices],
         interactions.item_ids[shuffle_indices],
         ratings=_index_or_none(interactions.ratings, shuffle_indices),
-        timestamps=_index_or_none(interactions.timestamps, shuffle_indices),
-        weights=_index_or_none(interactions.weights, shuffle_indices),
         n_users=interactions.n_users,
         n_items=interactions.n_items,
     )
@@ -745,8 +716,6 @@ def random_train_test_split(
         interactions.user_ids[train_idx],
         interactions.item_ids[train_idx],
         ratings=_index_or_none(interactions.ratings, train_idx),
-        timestamps=_index_or_none(interactions.timestamps, train_idx),
-        weights=_index_or_none(interactions.weights, train_idx),
         n_users=interactions.n_users,
         n_items=interactions.n_items,
     )
@@ -754,8 +723,6 @@ def random_train_test_split(
         interactions.user_ids[test_idx],
         interactions.item_ids[test_idx],
         ratings=_index_or_none(interactions.ratings, test_idx),
-        timestamps=_index_or_none(interactions.timestamps, test_idx),
-        weights=_index_or_none(interactions.weights, test_idx),
         n_users=interactions.n_users,
         n_items=interactions.n_items,
     )
@@ -786,8 +753,6 @@ def items_per_user_train_test_split(
         interactions.user_ids[train_mask],
         interactions.item_ids[train_mask],
         ratings=_index_or_none(interactions.ratings, train_mask),
-        timestamps=_index_or_none(interactions.timestamps, train_mask),
-        weights=_index_or_none(interactions.weights, train_mask),
         n_users=interactions.n_users,
         n_items=interactions.n_items,
     )
@@ -795,8 +760,6 @@ def items_per_user_train_test_split(
         interactions.user_ids[test_mask],
         interactions.item_ids[test_mask],
         ratings=_index_or_none(interactions.ratings, test_mask),
-        timestamps=_index_or_none(interactions.timestamps, test_mask),
-        weights=_index_or_none(interactions.weights, test_mask),
         n_users=interactions.n_users,
         n_items=interactions.n_items,
     )
