@@ -222,15 +222,6 @@ class DataLoader(object):
 
             return unique_elements[element_counts >= min_count]
 
-        def _build_contiguous_map(elements):
-            return dict(zip(elements, np.arange(len(elements)) + 1))
-
-        def _map(elements, mapping):
-            for idx, elem in enumerate(elements):
-                elements[idx] = mapping[elem]
-
-            return elements
-
         resource = AMAZON
         dir_path = self.get_data(resource, unzip=False)
         ratings = os.path.join(dir_path, resource.interactions)
@@ -253,19 +244,14 @@ class DataLoader(object):
         ratings = ratings[retain]
         timestamps = timestamps[retain]
 
-        retain_user_map = _build_contiguous_map(retain_user_ids)
-        retain_item_map = _build_contiguous_map(retain_item_ids)
-
-        user_ids = _map(user_ids, retain_user_map)
-        item_ids = _map(item_ids, retain_item_map)
+        user_ids = compact(user_ids)
+        item_ids = compact(item_ids)
 
         return Interactions(
             user_ids=user_ids,
             item_ids=item_ids,
             ratings=ratings,
             timestamps=timestamps,
-            n_users=len(retain_user_map) + 1,
-            n_items=len(retain_item_map) + 1,
         )
 
 
