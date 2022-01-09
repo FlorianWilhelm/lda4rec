@@ -8,7 +8,7 @@ main:
 neptune:
     project: florian.wilhelm/lda4rec-params  # `shared/onboarding` if no account
     api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
-    tags: ["run-6"]
+    tags: ["run-7"]
     description: "Experiment run on GCP"
     mode: "async" # or "offline", "sync", "debug"
 

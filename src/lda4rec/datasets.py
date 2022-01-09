@@ -52,14 +52,14 @@ class Resource:
 MOVIELENS_20M = Resource(
     path="ml-20m/raw.zip",
     interactions="ratings.csv",
-    read_args={"names": ["user_id", "item_id", "rating"], "header": 0},
+    read_args={"names": ["user_id", "item_id", "rating", "timestamp"], "header": 0},
     url="http://files.grouplens.org/datasets/movielens/ml-20m.zip",
 )
 MOVIELENS_10M = Resource(
     path="ml-10m/raw.zip",
     interactions="ratings.dat",
     read_args={
-        "names": ["user_id", "item_id", "rating"],
+        "names": ["user_id", "item_id", "rating", "timestamp"],
         "header": 0,
         "sep": "::",
         "engine": "python",  # due to > 1 char separator
@@ -70,7 +70,7 @@ MOVIELENS_1M = Resource(
     path="ml-1m/raw.zip",
     interactions="ratings.dat",
     read_args={
-        "names": ["user_id", "item_id", "rating"],
+        "names": ["user_id", "item_id", "rating", "timestamp"],
         "header": 0,
         "sep": "::",
         "engine": "python",  # due to > 1 char separator
@@ -81,7 +81,7 @@ MOVIELENS_100K_OLD = Resource(
     path="ml100k-old/raw.zip",
     interactions="u.data",
     read_args={
-        "names": ["user_id", "item_id", "rating"],
+        "names": ["user_id", "item_id", "rating", "timestamp"],
         "header": None,
         "sep": "\t",
     },
@@ -90,7 +90,7 @@ MOVIELENS_100K_OLD = Resource(
 MOVIELENS_100K = Resource(
     path="ml-latest-small/raw.zip",
     interactions="ratings.csv",
-    read_args={"names": ["user_id", "item_id", "rating"], "header": 0},
+    read_args={"names": ["user_id", "item_id", "rating", "timestamp"], "header": 0},
     url="http://files.grouplens.org/datasets/movielens/ml-latest-small.zip",
 )
 GOODBOOKS = Resource(
