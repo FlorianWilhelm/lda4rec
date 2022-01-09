@@ -225,14 +225,16 @@ def get_model_path_for_exp(cfg, model_dir):
     """Get corresponding model for config file"""
     exp_name = cfg["main"]["name"]
     model_path = list(model_dir.glob(f"{exp_name}_*"))
+    assert model_path, f"No model found in {model_dir}"
     assert len(model_path) == 1, "More than one model found for experiment!"
     return model_path[0]
 
 
-def load_model(model_dir, cfg, data):
+def load_model(cfg, data):
     """Load a corresponding model given a config file from directory"""
     exp_cfg = cfg["experiment"]
     Model = getattr(estimators, exp_cfg["estimator"])
+    model_dir = cfg["main"]["model_path"]
     model_path = get_model_path_for_exp(cfg, model_dir)
     est = Model(**exp_cfg["est_params"])
     est.load(model_path, data)
