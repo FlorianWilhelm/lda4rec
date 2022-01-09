@@ -8,7 +8,7 @@ main:
 neptune:
     project: florian.wilhelm/lda4rec-params  # `shared/onboarding` if no account
     api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
-    tags: ["run-5"]
+    tags: ["run-6"]
     description: "Experiment run on GCP"
     mode: "async" # or "offline", "sync", "debug"
 
@@ -18,7 +18,7 @@ experiment:
     interaction_pivot: 0
     model_seed: 123
     min_user_interactions: 20
-    max_user_interactions: 200
+    max_user_interactions: -1
     estimator: MFEst
     train_test_split: items_per_user_train_test_split # random_train_test_split
     est_params:
