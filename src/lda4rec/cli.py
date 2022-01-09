@@ -167,10 +167,10 @@ def experiments_gen(template):
         # "HierLDA4RecEst",
         # "HierVarLDA4RecEst",
     ]
-    datasets = ["movielens-1m", "goodbooks"]
+    datasets = ["amazon", "movielens-1m", "goodbooks"]
     model_seeds = [1426, 1729, 1981, 9876, 666]
 
-    embedding_dims = [8, 16, 32, 64, 128]
+    embedding_dims = [32, 64, 128, 256]
     learning_rates = [0.001]
     batch_sizes = [256]
     train_test_splits = ["items_per_user_train_test_split"]

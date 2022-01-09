@@ -23,8 +23,9 @@ import torch
 from rankereval import BinaryLabels, Precision, Rankings, Recall, ReciprocalRank
 from scipy.stats import entropy, kendalltau
 
-from .datasets import Interactions
-from .utils import split_along_dim_apply
+from . import estimators
+from .datasets import Interactions, get_dataset, items_per_user_train_test_split
+from .utils import Config, split_along_dim_apply
 
 FLOAT_MAX = np.finfo(np.float32).max
 
@@ -93,40 +94,45 @@ def norm_entropy(a: torch.Tensor) -> float:
     return entropy(a) / entropy(n)
 
 
-def dist_overlap(a: torch.Tensor, b: torch.Tensor) -> float:
+def dist_overlap(a: torch.Tensor, b: torch.Tensor, eps=1e-4) -> float:
     """Overlap of two categorical distributions"""
+    assert ((a.sum() - 1).abs() < eps) and ((b.sum() - 1).abs() < eps)
     a, b = a.expand(1, -1), b.expand(1, -1)
     return torch.cat([a, b], dim=0).min(dim=0).values.sum().item()
 
 
-def cohort_top_n_ranking_corr(cohorts_dists: torch.Tensor, n=10, alpha=0.05):
-    """From top n items in each cohort calculate the pairwise overlap followed
-    by Kendalls'tau on that overlap. Given an significance level alpha
-    the Taus are returned an NA otherwise"""
-    n_cohorts = cohorts_dists.shape[1]
-    top_n = [
-        c.argsort(descending=True)[:n].numpy()
-        for c in torch.unbind(cohorts_dists, dim=1)
-    ]
-    overlap = [
-        [np.array(list(set(top_n[i]) & set(top_n[j]))) for j in np.arange(n_cohorts)]
-        for i in np.arange(n_cohorts)
-    ]
-    corr_pval = np.array(
-        [
-            [
-                kendalltau(
-                    cohorts_dists[:, i][overlap[i][j]],
-                    cohorts_dists[:, j][overlap[i][j]],
-                )
-                for j in np.arange(n_cohorts)
-            ]
-            for i in np.arange(n_cohorts)
-        ]
-    )
-    corr, pval = corr_pval[..., 0], corr_pval[..., 1]
-    corr[pval > alpha] = np.nan
-    return corr
+def cohort_user_interaction_log_probs(
+    data, user_dists: torch.Tensor, cohort_dists: torch.Tensor, n_users=None, rng=None
+):
+    """Calculate log probabilities between a cohort and the user's interactions
+
+    For each user take the cohort with maximal preference of the user and the lowest.
+    Using the user's interaction calculate the log prob of seeing those interaction
+    using the probs from the cohort with lowest and highest preference of the user.
+    """
+
+    def _get_low_high_pref(user_dist: torch.Tensor):
+        high = user_dist.argmax().item()
+        low = rng.choice((user_dist == 0.0).nonzero().squeeze())
+        return low, high
+
+    df = data.to_pandas().set_index("user_id")
+    rng = np.random.default_rng(rng)
+    user_ids = np.arange(user_dists.shape[0])
+    if n_users is not None:
+        user_ids = rng.choice(user_ids, n_users, replace=False)
+
+    log_probs = []
+    for user_id in user_ids:
+        item_ids = torch.from_numpy(df["item_id"].loc[user_id].values).type(torch.long)
+        low, high = _get_low_high_pref(user_dists[user_id])
+        log_prob_low = torch.log(cohort_dists[item_ids, low]).sum()
+        log_prob_high = torch.log(cohort_dists[item_ids, high]).sum()
+        log_probs.append([log_prob_low, log_prob_high])
+
+    log_probs = torch.tensor(log_probs)
+    log_probs[torch.isinf(log_probs)] = -1e16  # just small enough but not too tiny ;-)
+    return user_ids, log_probs
 
 
 def get_empirical_pops(data):
@@ -138,7 +144,7 @@ def get_empirical_pops(data):
     emp_pops = np.zeros(data.n_items, dtype=int)
     val_counts = df["item_id"].value_counts()
     emp_pops[val_counts.index] = val_counts.to_numpy()
-    return emp_pops
+    return torch.from_numpy(emp_pops)
 
 
 def popularity_ranking_corr(data, pop_dist):
@@ -148,14 +154,15 @@ def popularity_ranking_corr(data, pop_dist):
 
 
 def conformity_interaction_pop_ranking_corr(pop, confs, data):
-    """Compare the conformity of users to the median popularity
+    """Compare the conformity of users to the mean popularity
     of the items interacted with.
 
     Use empirical pop or determined popularity as `pop`
     """
+    pop = pop.numpy()
     df = data.to_pandas()
     user_interaction_pops = df.groupby("user_id").apply(
-        lambda grp: np.median(pop[grp["item_id"].values])
+        lambda grp: pop[grp["item_id"].values].mean()
     )
     return kendalltau(
         user_interaction_pops, confs[user_interaction_pops.index].flatten()
@@ -206,3 +213,43 @@ def get_twin_jacs(user_ids, twins, data):
         jac.append(len(users_items & twins_items) / len(users_items | twins_items))
 
     return np.array(jac)
+
+
+def get_cfgs_from_path(path):
+    """Return alls configs in directory"""
+    for exp_file in path.glob("exp_*"):
+        yield Config(exp_file)
+
+
+def get_model_path_for_exp(cfg, model_dir):
+    """Get corresponding model for config file"""
+    exp_name = cfg["main"]["name"]
+    model_path = list(model_dir.glob(f"{exp_name}_*"))
+    assert len(model_path) == 1, "More than one model found for experiment!"
+    return model_path[0]
+
+
+def load_model(model_dir, cfg, data):
+    """Load a corresponding model given a config file from directory"""
+    exp_cfg = cfg["experiment"]
+    Model = getattr(estimators, exp_cfg["estimator"])
+    model_path = get_model_path_for_exp(cfg, model_dir)
+    est = Model(**exp_cfg["est_params"])
+    est.load(model_path, data)
+    return est
+
+
+def get_train_test_data(cfg):
+    """Get train/test data and data_rng using the config."""
+    exp_cfg = cfg["experiment"]
+    data_rng = np.random.default_rng(exp_cfg["dataset_seed"])
+    data = get_dataset(exp_cfg["dataset"], data_dir=cfg["main"]["data_path"])
+    data.implicit_(exp_cfg["interaction_pivot"])  # implicit feedback
+    data.max_user_interactions_(exp_cfg["max_user_interactions"], rng=data_rng)
+    data.min_user_interactions_(exp_cfg["min_user_interactions"])
+    assert exp_cfg["train_test_split"] == "items_per_user_train_test_split"
+
+    return (
+        *items_per_user_train_test_split(data, n_items_per_user=10, rng=data_rng),
+        data_rng,
+    )

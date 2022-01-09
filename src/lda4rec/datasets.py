@@ -216,7 +216,7 @@ class DataLoader(object):
                 timestamps=np.arange(len(data["ratings"]), dtype=np.int32),
             )
 
-    def load_amazon(self, min_user_interactions=10, min_item_interactions=10):
+    def load_amazon(self, min_user_interactions=20, min_item_interactions=10):
         def _filter_by_count(elements, min_count):
             unique_elements, element_counts = np.unique(elements, return_counts=True)
 
