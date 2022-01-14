@@ -150,7 +150,7 @@ def get_empirical_pops(data):
 def popularity_ranking_corr(data, pop_dist):
     """Compare popularity ranking to empirical popularity"""
     emp_pop = get_empirical_pops(data)
-    return kendalltau(pop_dist, emp_pop)
+    return kendalltau(pop_dist, emp_pop, variant="c")
 
 
 def conformity_interaction_pop_ranking_corr(pop, confs, data):
@@ -165,7 +165,7 @@ def conformity_interaction_pop_ranking_corr(pop, confs, data):
         lambda grp: pop[grp["item_id"].values].mean()
     )
     return kendalltau(
-        user_interaction_pops, confs[user_interaction_pops.index].flatten()
+        user_interaction_pops, confs[user_interaction_pops.index].flatten(), variant="c"
     )
 
 
