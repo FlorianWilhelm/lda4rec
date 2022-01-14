@@ -230,6 +230,7 @@ class DataLoader(object):
             item_ids = data["/item_id"][:]
             ratings = data["/rating"][:]
 
+        ratings = ratings.astype(np.int32)
         retain_user_ids = _filter_by_count(user_ids, min_user_interactions)
         retain_item_ids = _filter_by_count(item_ids, min_item_interactions)
 
@@ -244,10 +245,16 @@ class DataLoader(object):
         user_ids = compact(user_ids)
         item_ids = compact(item_ids)
 
+        # remove double interactions from data by taking max of same interactions
+        df = pd.DataFrame(
+            {"user_id": user_ids, "item_id": item_ids, "ratings": ratings}
+        )
+        df = df.groupby(["user_id", "item_id"], as_index=False).max()
+
         return Interactions(
-            user_ids=user_ids,
-            item_ids=item_ids,
-            ratings=ratings,
+            user_ids=df["user_id"].values,
+            item_ids=df["item_id"].values,
+            ratings=df["ratings"].values,
         )
 
 
