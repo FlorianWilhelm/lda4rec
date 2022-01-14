@@ -59,6 +59,7 @@ def summary(
     test: Interactions,
     valid: Interactions = None,
     k: int = 10,
+    eval_train: bool = True,
 ) -> pd.DataFrame:
     """Summarize all metrics in one DataFrame for train/valid/test"""
 
@@ -68,12 +69,14 @@ def summary(
         mrr = ReciprocalRank(k).mean(labels, ranks)["score"]
         return pd.Series(dict(prec=prec, recall=recall, mrr=mrr), name=name).to_frame()
 
-    train_ranks = Rankings.from_scores(calc_preds(est, train))
     test_ranks = Rankings.from_scores(calc_preds(est, test, train))
-    train_labels = BinaryLabels.from_sparse(train.to_coo())
     test_labels = BinaryLabels.from_sparse(test.to_coo())
 
-    res_list = [score("train", train_labels, train_ranks)]
+    res_list = []
+    if eval_train:
+        train_ranks = Rankings.from_scores(calc_preds(est, train))
+        train_labels = BinaryLabels.from_sparse(train.to_coo())
+        res_list.append(score("train", train_labels, train_ranks))
 
     if valid is not None:
         valid_ranks = Rankings.from_scores(calc_preds(est, valid, train))

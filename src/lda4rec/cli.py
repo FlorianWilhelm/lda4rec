@@ -131,7 +131,7 @@ def run_experiment(cfg: Config):
         _logger.info(f"Fitting estimator {exp_cfg['estimator']}...")
         est.fit(train)
         _logger.info("Evaluating...")
-        df = summary(est, train=train, valid=valid, test=test)
+        df = summary(est, train=train, valid=valid, test=test, eval_train=False)
 
         log_summary(df.reset_index())
         run["summary/df"].upload(File.as_html(df))
