@@ -144,7 +144,7 @@ def experiments_gen(template):
         # "HierVarLDA4RecEst",
     ]
     datasets = ["amazon", "movielens-1m", "goodbooks"]
-    model_seeds = [1729, 1981, 666]
+    model_seeds = [1729, 1981, 666, 234829, 92349402]
 
     learning_rates = [0.001]
     batch_sizes = [256]
