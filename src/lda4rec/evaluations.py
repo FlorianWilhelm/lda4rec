@@ -255,6 +255,7 @@ def get_train_test_data(cfg):
     assert exp_cfg["train_test_split"] == "items_per_user_train_test_split"
 
     return (
+        data,
         *items_per_user_train_test_split(data, n_items_per_user=10, rng=data_rng),
         data_rng,
     )

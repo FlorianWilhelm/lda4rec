@@ -3,17 +3,18 @@ main:
     data_path: '../data'
     log_path: '../logs'
     model_path: '../models'
+    eval_path: '../evaluations'
     log_level: INFO # log_level for log files
 
 neptune:
     project: florian.wilhelm/lda4rec-params  # `shared/onboarding` if no account
     api_token: '~/.neptune_api_token' # `ANONYMOUS` if no account
-    tags: ["run-9"]
+    tags: ["run-10"]
     description: "Experiment run on GCP"
     mode: "async" # or "offline", "sync", "debug"
 
 experiment:
-    dataset: amazon
+    dataset: movielens-1m
     dataset_seed: 1729
     interaction_pivot: 0
     model_seed: 123
@@ -23,6 +24,6 @@ experiment:
     train_test_split: items_per_user_train_test_split # random_train_test_split
     est_params:
         embedding_dim: 4
-        n_iter: 100
+        n_iter: 1
         batch_size: 128
         learning_rate: 0.01
