@@ -1,4 +1,4 @@
-name: lda4rec-ng
+name: lda4rec
 channels:
   - conda-forge
   - pytorch

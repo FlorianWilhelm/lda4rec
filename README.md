@@ -1,24 +1,21 @@
-# LDA4Rec Next Generation
+# LDA4Rec
 
-Matrix Factorization for collaborative filtering is just solving an adjoint Latent Dirichlet Allocation model after all.
+![LDA4Rec](docs/gfx/lda4rec_601x132.png?raw=true)
+
+[![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
+
+Accompanying source code to the paper "Matrix Factorization for Collaborative Filtering is just Solving an
+Adjoint Latent Dirichlet Allocation Model After All" by Florian Wilhelm and "An Interpretable Model for Collaborative Filtering Using
+an Extended Latent Dirichlet Allocation Approach" by Florian Wilhelm, Marisa Mohr and Lien Michiels.
+The preprint of "Matrix Factorization for Collaborative Filtering is just Solving an Adjoint Latent Dirichlet Allocation Model After All"
+can be found [here](docs/lda4rec_fwilhelm_prepint.pdf) along with the following statement:
+
+> "© Florian Wilhelm 2021. This is the author's version of the work. It is posted here for
+your personal use. Not for redistribution. The definitive version was published
+in RecSys '21: Fifteenth ACM Conference on Recommender Systems Proceedings, https://doi.org/10.1145/3460231.3474266."
 
 > **_NOTE:_**  This sourcecode is AGPL-3-only licensed. If you require a more permissive licence, e.g. for
 > commercial reasons, contact me to obtain a licence for your business.
-
-
-## Ideas & Next Steps
-
-* Examine the optimality between the opimization problem MF-BPR and LDA4Rec from a theoretical perspective.
-* Evaluate the hyperparameters more for LDA4Rec. So far no extensive evaluation was performed.
-  Maybe also replace LogNormal with Gamma.
-* Extend LDA4Rec by introducing a [Dirichlet Process](https://pyro.ai/examples/dirichlet_process_mixture.html) allowing
-  to only define maximum latent dimension, thus making the model easier to apply.
-* Evaluate the non-sampling approach for prediction further that is as fast as MF-BPR.
-  Initial implementation exists in `estimators.py`
-* Do explicit interactions by converting them to inplicit, e.g. just sample a 5 star rating more often than 3 stars.
-* Use Vespa as knn and query tool.
-* Examine Coldstart for items and users
-* Evaluation Protocol https://www.ijcai.org/Proceedings/15/Papers/559.pdf and https://www.ismll.uni-hildesheim.de/pub/pdfs/Rendle2008-Online_Updating_Regularized_Kernel_Matrix_Factorization_Models.pdf
 
 
 ## Installation
@@ -119,8 +116,6 @@ Remark: `-exec sleep 30` avoids race condition when reading datasets if parallel
 └── .pre-commit-config.yaml <- Configuration of pre-commit git hooks.
 ```
 
-<!-- pyscaffold-notes -->
-
 ## How to Cite
 
 Please cite LDA4Rec if it helps your research. You can use the following BibTeX entry:
@@ -130,26 +125,34 @@ Please cite LDA4Rec if it helps your research. You can use the following BibTeX 
 author = {Wilhelm, Florian},
 title = {Matrix Factorization for Collaborative Filtering Is Just Solving an Adjoint Latent Dirichlet Allocation Model After All},
 year = {2021},
-% isbn = {9781450375832},
+month = sep,
+isbn = {978-1-4503-8458-2/21/09},
 publisher = {Association for Computing Machinery},
 address = {New York, NY, USA},
-% url = {https://doi.org/10.1145/3383313.3412240},
-% doi = {10.1145/3383313.3412240},
+url = {https://doi.org/10.1145/3460231.3474266},
+doi = {10.1145/3460231.3474266},
 booktitle = {Fifteenth ACM Conference on Recommender Systems},
-% pages = {13–22},
-% numpages = {10},
-keywords = {Conversational Recommendation, Critiquing},
-% location = {Virtual Event, Brazil},
+numpages = {8},
+location = {Amsterdam, Netherlands},
 series = {RecSys '21}
 }
 ```
 
-The preprint can be found [here](docs/lda4rec_fwilhelm_prepint.pdf).
+## License
+
+This sourcecode is [AGPL-3-only](LICENSE.txt) licensed. If you require a more permissive licence, e.g. for
+commercial reasons, contact me to obtain a licence for your business.
+
+<!-- pyscaffold-notes -->
+
+## Acknowledgement
+
+Special thanks goes to [Du Phan](https://github.com/fehiepsi) and [Fritz Obermeyer](https://github.com/fritzo) from the [(Num)Pyro](https://github.com/pyro-ppl) project for their kind help and helpful comments on my code.
 
 ## Note
 
 This project has been set up using [PyScaffold] 4.0 and the [dsproject extension] 0.6.
-Some code was taken from [Spotlight] (MIT-licensed) by Maciej Kula as well as [lrann] (MIT-Licensed) by
+Some source code was taken from [Spotlight] (MIT-licensed) by Maciej Kula as well as [lrann] (MIT-licensed) by
 Florian Wilhelm and Marcel Kurovski.
 
 [PyScaffold]: https://pyscaffold.org/
