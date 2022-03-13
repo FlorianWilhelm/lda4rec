@@ -1,4 +1,4 @@
-# LDA4Rec
+# LDA4Rec / LDAext
 
 ![LDA4Rec](docs/gfx/lda4rec_601x132.png?raw=true)
 
@@ -16,6 +16,8 @@ can be found [here](docs/lda4rec_fwilhelm_prepint.pdf) along with the following 
 your personal use. Not for redistribution. The definitive version was published
 in RecSys '21: Fifteenth ACM Conference on Recommender Systems Proceedings, https://doi.org/10.1145/3460231.3474266."
 
+The preprint of "An Interpretable Model for Collaborative Filtering Using an Extended Latent Dirichlet Allocation Approach"
+can be found [here](docs/ldaext_fwilhelm_preprint.pdf).
 
 ## Installation
 
@@ -117,7 +119,7 @@ Remark: `-exec sleep 30` avoids race condition when reading datasets if parallel
 
 ## How to Cite
 
-Please cite LDA4Rec if it helps your research. You can use the following BibTeX entry:
+Please cite LDA4Rec/LDAext if it helps your research. You can use the following BibTeX entry:
 
 ```
 @inproceedings{wilhelm2021lda4rec,
