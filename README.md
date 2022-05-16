@@ -17,7 +17,7 @@ your personal use. Not for redistribution. The definitive version was published
 in RecSys '21: Fifteenth ACM Conference on Recommender Systems Proceedings, https://doi.org/10.1145/3460231.3474266."
 
 The preprint of "An Interpretable Model for Collaborative Filtering Using an Extended Latent Dirichlet Allocation Approach"
-can be found [here](docs/ldaext_fwilhelm_preprint.pdf).
+can be found [here](docs/ldaext_fwilhelm_preprint.pdf) and the final paper [here](https://journals.flvc.org/FLAIRS/article/view/130567).
 
 ## Installation
 
@@ -136,6 +136,17 @@ booktitle = {Fifteenth ACM Conference on Recommender Systems},
 numpages = {8},
 location = {Amsterdam, Netherlands},
 series = {RecSys '21}
+}
+@article{Wilhelm_Mohr_Michiels_2022, 
+title={An Interpretable Model for Collaborative Filtering Using an Extended Latent Dirichlet Allocation Approach}, 
+volume={35}, 
+url={https://journals.flvc.org/FLAIRS/article/view/130567}, 
+DOI={10.32473/flairs.v35i.130567}, 
+abstractNote={With the increasing use of AI and ML-based systems, interpretability is becoming an increasingly important issue to ensure user trust and safety. This also applies to the area of recommender systems, where methods based on matrix factorization (MF) are among the most popular methods for collaborative filtering tasks with implicit feedback. Despite their simplicity, the latent factors of users and items lack interpretability in the case of the effective, unconstrained MF-based methods. In this work, we propose an extended latent Dirichlet Allocation model (LDAext) that has interpretable parameters such as user cohorts of item preferences and the affiliation of a user with different cohorts. We prove a theorem on how to transform the factors of an unconstrained MF model into the parameters of LDAext. Using this theoretical connection, we train an MF model on different real-world data sets, transform the latent factors into the parameters of LDAext and test their interpretation in several experiments for plausibility. Our experiments confirm the interpretability of the transformed parameters and thus demonstrate the usefulness of our proposed approach.}, 
+journal={The International FLAIRS Conference Proceedings}, 
+author={Wilhelm, Florian and Mohr, Marisa and Michiels, Lien}, 
+year={2022}, 
+month={May} 
 }
 ```
 
